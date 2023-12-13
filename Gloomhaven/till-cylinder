@@ -1,0 +1,76 @@
+#!/usr/bin/env lua5.1
+
+------------------ classic print functions ---------------------
+local stringf = string.format
+local function printf(...) return io.stdout:write(stringf(...)) end
+local function eprintf(...) return io.stderr:write(stringf(...)) end
+local function fprintf(fd, ...) return fd:write(stringf(...)) end
+local function dief(...) eprintf(...); os.exit(1) end
+local function errorf(...) return error(stringf(...)) end
+local function runf(...) return os.execute(stringf(...)) end
+----------------------------------------------------------------
+
+assert(#arg == 2)
+local chord, depth = assert(tonumber(arg[1])), assert(tonumber(arg[2]))
+assert(chord > depth)
+
+local pi = math.pi
+local function deg(radians)
+  return radians * 180.0 / pi
+end
+local function radians(d)
+  return pi * d / 180.0
+end
+
+local function cos(d)
+  return math.cos(radians(d))
+end
+local function sin(d)
+  return math.sin(radians(d))
+end
+
+----------------------------------------------------------------
+
+--local function radius(theta)
+--  local bot = sin(theta) * (1 - cos(theta))
+--  return (chord * (1 - cos(theta)) - depth * sin(theta)) / bot
+--end
+
+local function radiusof(theta)
+  return depth / (1 - cos(theta))
+end
+
+local function chordof(theta)
+  return 2 * radiusof(theta) * sin(theta)
+end
+
+
+
+for theta = 1, 90, 1 do
+  local radius = depth / (1 - cos(theta))
+  local c = 2 * radius * sin(theta)
+--  printf("theta = %d; radius = %.1f; depth = %.1f; chord = %.1f\n",
+    -- theta, radius, depth, c)
+end
+
+local lo, hi = 1, 89
+local mid
+while true do
+  mid = (lo + hi) / 2.0
+  local c = chordof(mid)
+  if math.abs(c - chord) < 0.01 then
+    break
+  elseif c < chord then
+    hi = mid
+  elseif c > chord then
+    lo = mid
+  else
+    assert(false)
+  end
+end
+
+
+printf '\n'
+printf('theta = %.1f; radius = %.1f; depth = %.2f; chord = %.2f\n',
+       mid, radiusof(mid), depth, chordof(mid))
+

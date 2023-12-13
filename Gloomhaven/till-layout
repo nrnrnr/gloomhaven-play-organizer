@@ -1,0 +1,204 @@
+#!/usr/bin/env lua5.1
+
+------------------ classic print functions ---------------------
+local stringf = string.format
+local function printf(...) return io.stdout:write(stringf(...)) end
+local function eprintf(...) return io.stderr:write(stringf(...)) end
+local function fprintf(fd, ...) return fd:write(stringf(...)) end
+local function dief(...) eprintf(...); os.exit(1) end
+local function errorf(...) return error(stringf(...)) end
+local function runf(...) return os.execute(stringf(...)) end
+----------------------------------------------------------------
+
+local fields = require 'flags'.parser()
+  :number('height as h', 25)
+  :number('length as l', 40):help('drawer length front to back')
+  :number('rear as r', 10):help('rear radius')
+  :number('theta', 30):help('angle at front')
+  :number('c',10):help('distance up ramp to curve')
+  :numarg(0)
+  :parse(arg)
+
+fields.phi = 90 - fields.theta -- angle for big R
+
+----------------------------------------------------------------
+
+local pi = math.pi
+local function deg(radians)
+  return radians * 180.0 / pi
+end
+local function radians(d)
+  return pi * d / 180.0
+end
+
+local function cos(d)
+  return math.cos(radians(d))
+end
+local function sin(d)
+  return math.sin(radians(d))
+end
+local function tan(d)
+  return math.tan(radians(d))
+end
+
+----------------------------------------------------------------
+
+local template = [[
+\documentclass{article}
+\pagestyle{empty}
+\usepackage{tikz}
+\begin{document}
+\tikzset{x=1mm,y=1mm,ultra thick}
+\tikzstyle{construction}=[color=blue]
+\begin{center}
+\begin{tikzpicture}
+%s
+\end{tikzpicture}
+\end{center}
+\end{document}
+]]
+
+local lines = { }
+
+local function emit()
+  io.stdout:write(stringf(template, table.concat(lines, '\n')))
+end
+
+local function draw(...) table.insert(lines, stringf([[\draw %s;]], stringf(...))) end
+
+
+----------------------------------------------------------------
+
+local l, h, theta, r, c, phi =
+  fields.length, fields.height, fields.theta, fields.rear, fields.c, 90 - fields.theta
+
+-- tan(ϕ/2) == c / R
+-- R = c / tan(ϕ/2)
+
+
+draw('(0,0) rectangle +(%g,%g)', fields.length, fields.height)
+draw('(%g,0) arc(%g:%g:%g)', fields.rear, 270, 180, fields.rear)
+
+local touch = l - h * tan(theta)
+
+draw('[color=red!30!white] (%g,0) -- (%g,%g)', touch, l, h)
+
+local R = c / tan(phi / 2.0)
+
+draw('(%g,0) arc(%g:%g:%g)', touch - c, 270, 270 + phi, R)
+
+local inflect = { x = touch + c * cos(phi),
+                  y = c * sin(phi),
+}
+
+eprintf('Middle cube thickness = %g\n', l - r - touch - c)
+
+draw('(%g,%g) -- (%g,%g)', inflect.x, inflect.y, l, h)
+
+--- construction lines
+
+draw('[construction](%g,0) -- (%g,%g)', r, r, h)
+draw('[construction](0,%g) arc(%g:%g:%g)', r, 180, 90, r);
+
+draw('[construction](%g,%g) arc(90:%g:%g)', touch - c, 2 * R, phi - 90, R)
+draw('[construction](%g,0) -- (%g,%g)', touch - c, touch - c, 2 * R)
+
+-- draw('[construction](%g,0) -- (%g,%g)', touch, touch, h)
+draw('[construction](0,%g) -- +(%g,0)', r, r)
+
+local slant_length = h / cos(theta)
+
+draw('[construction] (%g, %g) -- ++(%g:%g) -- ++(%g:%g) -- ++(%g:%g)', 
+     touch + c * cos(phi), c * sin(phi), 
+     180 - theta, tan(phi) * (slant_length - c), 
+     90 - theta, slant_length - c,
+     - theta, tan(phi) * (slant_length - c))
+
+
+eprintf('Floor length = %.1f + %.1f + %.1f + %.1f = %.1f\n',
+        r * pi / 2, touch - c -r, R * radians(phi), slant_length - c, 
+        r * pi / 2 + touch - c -r + R * radians(phi) + slant_length - c)
+
+--[[
+ solid:
+
+ 1. make cube including sep and epsilon
+ 2. subtract upper back cube
+ 3. subtract central cube between cylinders
+ 4. subtract rear half-cylinder
+ 5. subtract front half-cylinder
+ 6. subtract tilted cube
+
+]]
+
+
+
+
+
+
+local front_curve = -- approximate by triangle
+  c * c * sin(phi) / 2
+  
+local area = h * l - h * h * tan(theta) / 2 + r * r * (pi / 4 - 1)  - front_curve
+
+local function commafy(n)
+  if n < 1000 then return stringf('%d', n)
+  else
+    local thousands = math.floor(n / 1000)
+    local ones = n - 1000 * thousands
+    return stringf('%s,%03d', commafy(thousands), ones)
+  end
+end
+
+draw('(%g, %g) node [anchor=north] {Area = %s mm${}^2$}', 
+     l / 2, -r, commafy(math.floor(area)))
+
+
+--
+--
+----local function radius(theta)
+----  local bot = sin(theta) * (1 - cos(theta))
+----  return (chord * (1 - cos(theta)) - depth * sin(theta)) / bot
+----end
+--
+--local function radiusof(theta)
+--  return depth / (1 - cos(theta))
+--end
+--
+--local function chordof(theta)
+--  return 2 * radiusof(theta) * sin(theta)
+--end
+--
+--
+--
+--for theta = 1, 90, 1 do
+--  local radius = depth / (1 - cos(theta))
+--  local c = 2 * radius * sin(theta)
+----  printf("theta = %d; radius = %.1f; depth = %.1f; chord = %.1f\n",
+--    -- theta, radius, depth, c)
+--end
+--
+--local lo, hi = 1, 89
+--local mid
+--while true do
+--  mid = (lo + hi) / 2.0
+--  local c = chordof(mid)
+--  if math.abs(c - chord) < 0.01 then
+--    break
+--  elseif c < chord then
+--    hi = mid
+--  elseif c > chord then
+--    lo = mid
+--  else
+--    assert(false)
+--  end
+--end
+--
+--
+--printf '\n'
+--printf('theta = %.1f; radius = %.1f; depth = %.2f; chord = %.2f\n',
+--       mid, radiusof(mid), depth, chordof(mid))
+
+
+
+emit()
