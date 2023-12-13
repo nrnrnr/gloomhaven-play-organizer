@@ -1,0 +1,23 @@
+\documentclass{article}
+\pagestyle{empty}
+\usepackage{tikz}
+\begin{document}
+\tikzset{x=1mm,y=1mm,ultra thick}
+\tikzstyle{construction}=[color=blue]
+\begin{center}
+\begin{tikzpicture}
+\draw (0,0) rectangle +(40,25);
+\draw (10,0) arc(270:180:10);
+\draw [color=red!30!white] (25.5662,0) -- (40,25);
+\draw (15.5662,0) arc(270:330:17.3205);
+\draw (30.5662,8.66025) -- (40,25);
+\draw [construction](10,0) -- (10,25);
+\draw [construction](0,10) arc(180:90:10);
+\draw [construction](15.5662,34.641) arc(90:-30:17.3205);
+\draw [construction](15.5662,0) -- (15.5662,34.641);
+\draw [construction](0,10) -- +(10,0);
+\draw [construction] (30.5662, 8.66025) -- ++(150:32.6795) -- ++(60:18.8675) -- ++(-30:32.6795);
+\draw (20, -10) node [anchor=north] {Area = 754 mm${}^2$};
+\end{tikzpicture}
+\end{center}
+\end{document}
