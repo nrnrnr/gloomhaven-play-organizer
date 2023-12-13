@@ -1,0 +1,9 @@
+*.3mf
+*~
+*.out
+*.aux
+*.pdf
+*.log
+*.gcode
+*.bgcode
+*.dxf
