@@ -6,7 +6,7 @@ use <drawer.scad>
 
 epsilon = 0.001;
 
-inserts = true;
+inserts = false;
 
 tokenwidth = 29.8;
 tokensep = 1.2;
@@ -37,6 +37,7 @@ module coin(index) {
 cardthickness = 5;
 carddepth = 20;
 cardheight = max(carddepth + floor, coinheight);
+cardwidth = 77;
 
 module cardtranslate(index) {
    translate([index * (coinwidth+coinsep) - coinsep, tokenlength+coinlength,0])
@@ -49,7 +50,7 @@ module cardbounding(index) {
 }
 
 module cards(index) {
-  width = 77;
+  width = cardwidth;
   sep =	(fullwidth - 3 * width) / 4;
   depth = carddepth;
   height = cardheight;
@@ -69,12 +70,16 @@ module cards(index) {
    }
 }
 
+blockwidth = coinsep + (coinwidth - cardwidth) * 1.5;
+
 
 module lidhole(index) {
   width = 3;
-  depth = fullheight - 5;
-  translate([coinsep/2+index*(coinwidth+coinsep), 2+30+80+2+2+1+width/2, fullheight-depth/2])
-    cylinder(h=depth+1,r=width/2,center=true);
+  depth = cardheight - 5;
+
+  cardtranslate(index)
+    translate([(3 - index) * (cardwidth-coinwidth)/2 + blockwidth/2, cardthickness/2+coinsep, cardheight-depth])
+    cylinder(h=depth+epsilon,r=width/2);
 }
 
 
@@ -85,29 +90,26 @@ module caddy () {
 
   difference () {
     union () {
-      for (i=[0:1:7]) {
-        token(i);
+      difference () {
+        union () {
+          for (i=[0:1:7]) {
+            token(i);
+          }
+          for (i=[0:1:2]) {
+            coin(i);
+          }
+        }
+        for (i=[0:1:2]) {
+          cardbounding(i);
+        }
       }
       for (i=[0:1:2]) {
-        coin(i);
+        cards(i);
       }
     }
-    for (i=[0:1:2]) {
-      cardbounding(i);
-    }
+    lidhole(1);
+    lidhole(2);
   }
-  for (i=[0:1:2]) {
-    cards(i);
-  }
-
-//  difference () {
-//    lidhole(1);
-//    lidhole(2);
-//    // cut for prototyping
-//    translate([coinsep*2+coinwidth,-1,-1]) cube([width,123*1.2,fullheight*1.2]);
-//    translate([31,-1,-1]) cube([width,33, fullheight*1.2]);
-//
-//  }
 
 }
 
