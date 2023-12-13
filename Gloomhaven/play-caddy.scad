@@ -6,6 +6,7 @@ use <drawer.scad>
 
 epsilon = 0.001;
 
+inserts = true;
 
 tokenwidth = 29.8;
 tokensep = 1.2;
@@ -22,7 +23,7 @@ floor=1;
 
 module token(index) {
   translate([index * (tokenwidth + tokensep),0,0])
-    drawer(w=tokenwidth,h=tokenheight,l=tokenlength,sep=tokensep,theta=45,floor=floor);
+    drawer(w=tokenwidth,h=tokenheight,l=tokenlength,sep=tokensep,theta=45,floor=floor,insert=inserts);
 }
 
 
@@ -37,7 +38,7 @@ coinheight = 20;
 
 module coin(index) {
   translate([index * (coinwidth + coinsep),tokenlength,0])
-    drawer(w=coinwidth,h=coinheight,l=coinlength,sep=coinsep,theta=45,floor_y_shift=2*coinlength+30,floor=floor);
+    drawer(w=coinwidth,h=coinheight,l=coinlength,sep=coinsep,theta=45,floor_y_shift=2*coinlength+30,floor=floor,insert=inserts);
 }
 
 //translate([0,-coinarc-10,0]) cube([coinwidth,coinarc,0.2]);

@@ -14,7 +14,7 @@ module half_cylinder(r,h) {
 }
 
 module drawer (h=25, w=30, l=40, r=10, theta=30, c=10, sep=0.8, 
-               floor_y_shift=-10, layer_height=0.2, floor=1) {
+               floor_y_shift=-10, layer_height=0.2, floor=1, insert=true) {
   // h     = drawer height
   // w     = drawer width
   // l     = drawer length (depth) front to back
@@ -22,6 +22,8 @@ module drawer (h=25, w=30, l=40, r=10, theta=30, c=10, sep=0.8,
   // theta = angle drawer front makes with vertical
   // c     = length of circumscribed line on front radius
   // sep   = material around drawer
+
+  // insert = model the smooth insert for the bottom of the drawer
 
 
   phi   = 90 - theta;         // complement of theta (90 - theta)
@@ -73,8 +75,10 @@ module drawer (h=25, w=30, l=40, r=10, theta=30, c=10, sep=0.8,
 
   floor_trim = 0.4; // amount to reduce width and length
 
-  translate([0,floor_y_shift-floor_length,0])
-    cube([w-floor_trim,floor_length - floor_trim, layer_height]);
+  if (insert) {
+    translate([0,floor_y_shift-floor_length,0])
+      cube([w-floor_trim,floor_length - floor_trim, layer_height]);
+  }
 
 
 //  color("blue") translate([-w/2,0,0])
