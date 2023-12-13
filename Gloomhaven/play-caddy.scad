@@ -56,7 +56,7 @@ module cards(index) {
   height = cardheight;
   chamfer = (cardthickness + coinsep) / sqrt(2);
 
-  echo(coinwidth=coinwidth,coinsep=coinsep);
+//  echo(coinwidth=coinwidth,coinsep=coinsep);
 
   difference () {
     cardbounding(index);
@@ -83,8 +83,27 @@ module lidhole(index) {
 }
 
 
+default_r = 10;
 
+module card_label(index, s) {
+  thickness = 0.4;
+  translate([coinsep + index * (coinsep + coinwidth) + coinwidth/2,
+             tokenlength+coinlength+thickness-epsilon,
+             coinheight-default_r+3])
+  rotate([90,0,0])
+  linear_extrude(thickness)
+  text(s, font = "Pirata One", halign = "center", size=6, valign="baseline");
+}
 
+module token_label(index, s) {
+  thickness = 0.4;
+  translate([index * (tokensep + tokenwidth) + tokenwidth/2,
+             thickness-epsilon,
+             tokenheight/2+1])
+  rotate([90,0,0])
+  linear_extrude(thickness)
+  text(s, font = "gloomhaven conditions", halign = "center", size=9, valign="center");
+}
 
 module caddy () {
 
@@ -109,22 +128,30 @@ module caddy () {
     }
     lidhole(1);
     lidhole(2);
+    card_label(0, "Player Curse");
+    card_label(1, "Bless");
+    card_label(2, "Monster Curse");
+    token_label(0, "P");
+    token_label(1, "W");
+    token_label(2, "I");
+    token_label(3, "D");
+    token_label(4, "U");
+    token_label(5, "M");
+    token_label(6, "S");
+    token_label(7, "V");
   }
 
 }
 
 
-module test() {
-  token(0);
-//  coin(0);
-}
+//translate([0,-10,0]) text("P", font = "gloomhaven conditions", halign="center", size = 6, valign="baseline");
 
+translate ([0, 10, 0]) caddy();
 
-//token(0);
+// ruler
+//for (i=[0:1:35]) translate([-tokensep+i-0.05, 0, 14]) color("blue") cube([0.1, 2, 7]);
 
-caddy();
-
-//test();
+//difference () { coin(0); card_label(0, "Player Curse"); }
 
 
 
