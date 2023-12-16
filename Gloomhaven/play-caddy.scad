@@ -472,11 +472,23 @@ module setup_caddy() {
 }
 
 //caddy();
-
-//translate([0,0,2]) setup_caddy_contents();
-
+//
+//translate([0,0,2+coinheight]) setup_caddy_contents();
+//
 //translate([0,-10-fulllength, 2+coinheight]) setup_caddy();
 
-setup_caddy();
+module setup_test_pieces () {
+  left(cards3x-interiorcardsep/2) 
+  union () {
 
+    test_thickness = 5;
 
+    setup_caddy();
+
+    color("blue") translate([0,120,test_thickness-caddyheight]) above(caddyheight-test_thickness) setup_caddy();
+
+    color("red") translate([0,-120,0]) below(floor+test_thickness) setup_caddy();
+  }
+}
+
+setup_test_pieces();
