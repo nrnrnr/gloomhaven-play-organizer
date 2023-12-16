@@ -1,4 +1,3 @@
-
 $fa = 1;    // fine resolution
 $fs = 0.4;  // fine resolution
 
@@ -7,6 +6,7 @@ use <drawer.scad>
 epsilon = 0.001;
 
 inserts = false;
+add_text = false;
 
 tokenwidth = 29.8;
 tokensep = 1.2;
@@ -44,12 +44,27 @@ module cardtranslate(index) {
    children();
 }
 
+
 module cardbounding(index) {
    cardtranslate(index)
    cube([coinwidth+2*coinsep+epsilon, cardthickness+ 2 * coinsep+epsilon, cardheight]);
 }
 
-module cards(index) {
+fulllength = tokenlength+coinlength + cardthickness + 2 * coinsep;
+
+
+module displayed_cards(index) {
+  translate([0,0,floor])
+    cardtranslate(index)
+      cube([cardwidth, cardthickness, 46]);
+}
+
+
+smallcardheight = 68;
+smallcardwidth = 44;
+
+
+module rear_card_slot(index) {
   width = cardwidth;
   sep =	(fullwidth - 3 * width) / 4;
   depth = carddepth;
@@ -63,12 +78,30 @@ module cards(index) {
     cardtranslate(index)
       translate([coinsep+index*(coinwidth-width)/2, coinsep, height-depth])
         union () {
-          cube([width+epsilon,cardthickness+epsilon,depth+epsilon]);
+          cube([width+epsilon,cardthickness+epsilon,smallcardwidth+epsilon]);
           translate([0,cardthickness/2,depth-chamfer/sqrt(2)]) 
             rotate([45,0,0]) cube([width+epsilon,chamfer,chamfer]);
         }
    }
 }
+
+module rear_cards(index) {
+  width = cardwidth;
+  sep =	(fullwidth - 3 * width) / 4;
+  depth = carddepth;
+  height = cardheight;
+  chamfer = (cardthickness + coinsep) / sqrt(2);
+
+//  echo(coinwidth=coinwidth,coinsep=coinsep);
+
+    cardtranslate(index)
+      translate([coinsep+index*(coinwidth-width)/2, coinsep, height-depth])
+        union () {
+          cube([width+epsilon,cardthickness+epsilon,smallcardwidth+epsilon]);
+        }
+}
+
+
 
 blockwidth = coinsep + (coinwidth - cardwidth) * 1.5;
 
@@ -90,9 +123,13 @@ module card_label(index, s) {
   translate([coinsep + index * (coinsep + coinwidth) + coinwidth/2,
              tokenlength+coinlength+thickness-epsilon,
              coinheight-default_r+3])
-  rotate([90,0,0])
-  linear_extrude(thickness)
-  text(s, font = "Pirata One", halign = "center", size=6, valign="baseline");
+  if (add_text) {
+    rotate([90,0,0])
+    linear_extrude(thickness)
+    text(s, font = "Pirata One", halign = "center", size=6, valign="baseline");
+  } else {
+    color ("white") translate([-20,0,0]) cube([40,10,thickness]);
+  }
 }
 
 module token_label(index, s) {
@@ -104,6 +141,17 @@ module token_label(index, s) {
   linear_extrude(thickness)
   text(s, font = "gloomhaven conditions", halign = "center", size=9, valign="center");
 }
+
+// GH conditions: D disarm
+//                I immobilize
+//                M muddle
+//                P poison
+//                S strengthen
+//                U stun
+//                V invisible
+//                W wound
+//                Z regenerate
+
 
 module caddy () {
 
@@ -123,7 +171,7 @@ module caddy () {
         }
       }
       for (i=[0:1:2]) {
-        cards(i);
+        rear_card_slot(i);
       }
     }
     lidhole(1);
@@ -131,14 +179,16 @@ module caddy () {
     card_label(0, "Player Curse");
     card_label(1, "Bless");
     card_label(2, "Monster Curse");
-    token_label(0, "P");
-    token_label(1, "W");
-    token_label(2, "I");
-    token_label(3, "D");
-    token_label(4, "U");
-    token_label(5, "M");
-    token_label(6, "S");
-    token_label(7, "V");
+    if (add_text) {
+      token_label(0, "P");
+      token_label(1, "W");
+      token_label(2, "I");
+      token_label(3, "D");
+      token_label(4, "U");
+      token_label(5, "M");
+      token_label(6, "S");
+      token_label(7, "V");
+    }
   }
 
 }
@@ -146,13 +196,247 @@ module caddy () {
 
 //translate([0,-10,0]) text("P", font = "gloomhaven conditions", halign="center", size = 6, valign="baseline");
 
-translate ([0, 10, 0]) caddy();
+//translate ([0, 10, 0]) caddy();
 
 // ruler
 //for (i=[0:1:35]) translate([-tokensep+i-0.05, 0, 14]) color("blue") cube([0.1, 2, 7]);
 
 //difference () { coin(0); card_label(0, "Player Curse"); }
 
+////////////////////////////////////////////////////////////////
+
+
+
+eventcardheight = 88;
+eventcardwidth = 63;
+
+cardleeway = 1;
+
+exteriorcardsep = 5;
+interiorcardsep = (fullwidth - 
+                   2 * exteriorcardsep - 
+                   2 * (eventcardwidth + smallcardwidth + 2 * cardleeway)) / 3.0;
+
+
+separator_thickness = 2;
+
+numberthickness = 27;
+eventthickness = 27; // TODO measure
+caddyheight = floor + max(numberthickness,eventthickness) + 3;
+
+
+module thumbcutout () {
+  union () {
+    translate([-14,-14,-50]) cube([28,28+epsilon,100]);
+    translate([0,14,0]) cylinder(r=14,h=100,center=true);
+  }
+}
+
+
+
+module event_cards(thickness=26) {
+  union () {
+    difference() {
+      color("red")
+      cube_filleted_columns(eventcardwidth+cardleeway,eventcardheight+cardleeway,thickness+separator_thickness,1.5);
+      translate([0,2,thickness/2]) event_separator_gap();
+    }
+    color("white") translate([0,2,thickness/2]) event_separator();
+  }
+}
+
+module event_cards_negated(thickness=26) {
+   cube_filleted_columns(eventcardwidth+cardleeway,eventcardheight+cardleeway,thickness+50,1.5);
+}
+
+module event_separator_gap(x_shift=cardleeway) {
+  color("white") translate([-10,-10,0]) cube_filleted_columns(eventcardwidth+20,eventcardheight+20,separator_thickness,1.5);
+}
+
+module event_separator(x_shift=cardleeway) {
+  leeway = 3;
+  color("white") cube_filleted_columns(eventcardwidth,eventcardheight-leeway,separator_thickness,1.5);
+  wrapwidth = 14; // must be larger than for front card cout
+  color("white")
+  translate([wrapwidth,-exteriorcardsep,0]) cube_filleted_columns(eventcardwidth - 2 * wrapwidth, leeway+ exteriorcardsep + epsilon + 1.5, separator_thickness, 1.5);
+}
+  
+
+module frontcardcutout(width) {
+  union () {
+   cube([width, smallcardheight, 1000]);
+   translate([width/2,0,0]) thumbcutout();
+  }
+}
+  
+
+module small_cards(thickness=27,sleeved=false) { 
+  if (sleeved) {
+    cube_filleted_columns(46+cardleeway,73+cardleeway,thickness,1.5);
+  } else {
+    cube_filleted_columns(smallcardwidth+cardleeway,smallcardheight+cardleeway,thickness,1.5);
+  }
+}
+module small_cards_negated(thickness=27,sleeved=false) { 
+  if (sleeved) {
+    cube_filleted_columns(46+cardleeway,73+cardleeway,thickness+50,1.5);
+  } else {
+    cube_filleted_columns(smallcardwidth+cardleeway,smallcardheight+cardleeway,thickness+50,1.5);
+  }
+}
+
+token_radius_slop = 0.3;
+
+
+module number_letter_access(diameter=22) {
+  // meant to be placed where center of cylinder is placed
+  slot_width = diameter - 7;
+  depth = 20;  // front to back
+
+  translate([0,-slot_width/2,0]) cylinder(r=slot_width/2,h=100, center=true);
+  translate([-slot_width/2, -slot_width/2-depth, -50]) cube([slot_width,depth+epsilon,100]);
+  translate([0,-slot_width/2-depth,0]) cylinder(r=slot_width/2,h=100, center=true);
+}
+
+module number_tokens(negative=false) {
+  h = negative ? 100 : 27;
+  cylinder(r=11+token_radius_slop,h=h);
+  if (negative) {
+    number_letter_access();
+  }
+}
+module letter_tokens(negative=false) {
+  h = negative ? 100 : 23;
+  cylinder(r=10.5+token_radius_slop,h=h);
+  if (negative) {
+    number_letter_access();
+  }
+}
+
+
+module setup_caddy_contents (negative=false) {
+  // city events
+  // road events
+  // battle goals
+  // -1 cards
+  // monster deck
+  // number tokensa
+  // number tokens
+
+  if (!negative) {
+    color("blue") union () {
+      translate([0,0,tokenheight])          cube([fullwidth, tokenlength, floor]);
+      translate([0,tokenlength,coinheight]) cube([fullwidth, fulllength - tokenlength, floor]);
+    }
+  }
+
+  back = tokenlength + coinlength;
+  baseheight = coinheight + floor;
+
+  cards1x = exteriorcardsep - coinsep;
+  cards2x = cards1x + eventcardwidth + interiorcardsep;
+  cards3x = cards2x + smallcardwidth + interiorcardsep;
+  cards4x = cards3x + smallcardwidth + interiorcardsep;
+
+
+  cards2midx = cards2x + smallcardwidth/2;
+  cards3midx = cards3x + smallcardwidth/2;
+
+  cardsfront = exteriorcardsep; // common y coordinate
+
+  module ev(x) {
+    if (negative) {
+      wrapwidth = 10;
+      translate([x,cardsfront, baseheight]) event_cards_negated();
+      translate([x+wrapwidth,-epsilon, baseheight])
+        frontcardcutout(eventcardwidth-2*wrapwidth);
+    } else {
+      translate([x,cardsfront, baseheight]) event_cards();
+    }
+  }
+  // city and road events
+  ev(cards1x);
+  ev(cards4x);
+
+  smallstart = exteriorcardsep+2*(eventcardwidth+interiorcardsep+cardleeway);
+
+  smallthickness = 6; // MEASURE!!!
+
+  if (negative) {
+    wrapwidth = 6;
+    translate([cards2x+wrapwidth,-epsilon,baseheight])
+      frontcardcutout(smallcardwidth-2*wrapwidth);
+    color("red") translate([cards2x, cardsfront,baseheight])
+      small_cards_negated(); // battle goals
+  } else {
+    color("red") translate([cards2x, cardsfront,baseheight])
+      small_cards(); // battle goals
+  }
+
+  numbery = cardsfront + smallcardheight + cardleeway + 3;
+
+  tokenshift = 0;
+
+  color("yellow") translate([cards2midx+tokenshift,numbery+10.5, coinheight + floor])
+    letter_tokens(negative);
+
+  color("yellow") translate([cards3midx-tokenshift,numbery+11, coinheight + floor])
+    number_tokens(negative);
+
+
+
+  stacksep = 10;
+
+  if (!negative) {
+
+    color("green") translate([cards3x, cardsfront,baseheight])
+      small_cards(smallthickness);  // -1 cards
+
+    color("green") translate([cards3x, cardsfront,baseheight+smallthickness+ stacksep])
+      small_cards(smallthickness);  // monster attack deck
+
+  } else {
+    wrapwidth = 6;
+    difference () {
+      union () {
+        translate([cards3x+wrapwidth,-epsilon,baseheight])
+          frontcardcutout(smallcardwidth-2*wrapwidth);
+        color("red") translate([cards3x, cardsfront,baseheight])
+          small_cards_negated(); // battle goals
+      }
+      cube([0,0,0]);
+    }
+  }
+
+
+//  color("green") translate([fullwidth-cardssep-27,cardssep+11, 11+tokenheight + floor])
+//    rotate([0,90,0])
+//    number_tokens();
+//
+//    color("yellow") translate([fullwidth-2*(cardssep+27),cardssep+11, 11+tokenheight + floor])
+//    rotate([0,90,0])
+//    letter_tokens();
+
+
+  color("purple") union () {
+    rear_cards(0);
+    rear_cards(1);
+    rear_cards(2);
+  }
+}
+
+module setup_caddy() {
+  difference () {
+    translate([-coinsep,0,coinheight]) cube([fullwidth, tokenlength+coinlength+coinsep/3, caddyheight]);
+    setup_caddy_contents(negative=true);
+  }
+}
+
+//caddy();
+
+translate([0,0,2]) setup_caddy_contents();
+
+translate([0,-10-fulllength, 2]) setup_caddy();
 
 
 
