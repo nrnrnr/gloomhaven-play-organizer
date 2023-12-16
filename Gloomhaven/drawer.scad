@@ -130,3 +130,17 @@ module cube_filleted_columns(x,y,z,r) {
   }
 }
 
+
+module anti_fillet(r,h) {
+  // returns a rod of height `h` along the Z axis, `r+epsilon` on a side,
+  // with a quarter-cylinder of radius `r` removed
+
+  difference () {
+    cube([r+epsilon,r+epsilon,h]);
+    translate([0,0,-epsilon]) cylinder(r=r,h=h+2*epsilon);
+  }
+}
+
+module anti_fillet_nw(r,h) {
+  rotate([0,0,90]) anti_fillet(r,h);
+}
