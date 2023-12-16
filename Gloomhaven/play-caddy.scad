@@ -313,25 +313,8 @@ module letter_tokens(negative=false) {
   }
 }
 
-
-module setup_caddy_contents (negative=false) {
-  // city events
-  // road events
-  // battle goals
-  // -1 cards
-  // monster deck
-  // number tokensa
-  // number tokens
-
-  if (!negative) {
-    color("blue") union () {
-      translate([0,0,tokenheight])          cube([fullwidth, tokenlength, floor]);
-      translate([0,tokenlength,coinheight]) cube([fullwidth, fulllength - tokenlength, floor]);
-    }
-  }
-
-  back = tokenlength + coinlength;
-  baseheight = coinheight + floor;
+wrapwidthevents = 10;
+wrapwidthsmall = 6;
 
   cards1x = exteriorcardsep - coinsep;
   cards2x = cards1x + eventcardwidth + interiorcardsep;
@@ -344,9 +327,30 @@ module setup_caddy_contents (negative=false) {
 
   cardsfront = exteriorcardsep; // common y coordinate
 
+
+module setup_caddy_contents (negative=false) {
+  // city events
+  // road events
+  // battle goals
+  // -1 cards
+  // monster deck
+  // number tokensa
+  // number tokens
+
+  if (!negative) {
+    color("blue") union () {
+      translate([0,0,tokenheight-coinheight])          cube([fullwidth, tokenlength, floor]);
+      translate([0,tokenlength,0]) cube([fullwidth, fulllength - tokenlength, floor]);
+    }
+  }
+
+  back = tokenlength + coinlength;
+  baseheight = floor;
+
+
   module ev(x) {
     if (negative) {
-      wrapwidth = 10;
+      wrapwidth = wrapwidthevents;
       translate([x,cardsfront, baseheight]) event_cards_negated();
       translate([x+wrapwidth,-epsilon, baseheight])
         frontcardcutout(eventcardwidth-2*wrapwidth);
@@ -363,7 +367,7 @@ module setup_caddy_contents (negative=false) {
   smallthickness = 6; // MEASURE!!!
 
   if (negative) {
-    wrapwidth = 6;
+    wrapwidth = wrapwidthsmall;
     translate([cards2x+wrapwidth,-epsilon,baseheight])
       frontcardcutout(smallcardwidth-2*wrapwidth);
     color("red") translate([cards2x, cardsfront,baseheight])
@@ -377,13 +381,11 @@ module setup_caddy_contents (negative=false) {
 
   tokenshift = 0;
 
-  color("yellow") translate([cards2midx+tokenshift,numbery+10.5, coinheight + floor])
+  color("yellow") translate([cards2midx+tokenshift,numbery+10.5, baseheight])
     letter_tokens(negative);
 
-  color("yellow") translate([cards3midx-tokenshift,numbery+11, coinheight + floor])
+  color("yellow") translate([cards3midx-tokenshift,numbery+11, baseheight])
     number_tokens(negative);
-
-
 
   stacksep = 10;
 
@@ -396,7 +398,7 @@ module setup_caddy_contents (negative=false) {
       small_cards(smallthickness);  // monster attack deck
 
   } else {
-    wrapwidth = 6;
+    wrapwidth = wrapwidthsmall;
     difference () {
       union () {
         translate([cards3x+wrapwidth,-epsilon,baseheight])
@@ -426,17 +428,55 @@ module setup_caddy_contents (negative=false) {
 }
 
 module setup_caddy() {
+  fradius = exteriorcardsep/2; // for fillets
+
+    
+
+
   difference () {
-    translate([-coinsep,0,coinheight]) cube([fullwidth, tokenlength+coinlength+coinsep/3, caddyheight]);
+    translate([-coinsep,0,0]) cube([fullwidth, tokenlength+coinlength+coinsep/3, caddyheight]);
     setup_caddy_contents(negative=true);
+    translate ([wrapwidthevents+exteriorcardsep-fradius-coinsep,
+                exteriorcardsep-fradius,
+                floor])
+    union () {
+      anti_fillet(r=fradius,h=caddyheight+epsilon);
+
+      translate([eventcardwidth+interiorcardsep+wrapwidthsmall-wrapwidthevents,0,0])
+      union () {
+        anti_fillet(r=fradius,h=caddyheight+epsilon);
+        translate([smallcardwidth+interiorcardsep,0,0])
+        union () {
+          anti_fillet(r=fradius,h=caddyheight+epsilon);
+          translate([smallcardwidth+interiorcardsep+wrapwidthevents-wrapwidthsmall,0,0])
+            anti_fillet(r=fradius,h=caddyheight+epsilon);
+        }
+      }
+    }
+    translate([cards1x+eventcardwidth+fradius-wrapwidthevents,cardsfront-fradius,floor])
+    union () {
+      anti_fillet_nw(r=fradius,h=caddyheight+epsilon);
+      translate([smallcardwidth+interiorcardsep+wrapwidthevents-wrapwidthsmall,0,0])
+      union () {
+        anti_fillet_nw(r=fradius,h=caddyheight+epsilon);
+        translate([smallcardwidth+interiorcardsep,0,0])
+        union () {
+          anti_fillet_nw(r=fradius,h=caddyheight+epsilon);
+          translate([eventcardwidth+interiorcardsep+wrapwidthsmall-wrapwidthevents,0,0])
+            anti_fillet_nw(r=fradius,h=caddyheight+epsilon);
+        }
+      }
+    }
+
   }
 }
 
 //caddy();
 
-translate([0,0,2]) setup_caddy_contents();
+//translate([0,0,2]) setup_caddy_contents();
 
-translate([0,-10-fulllength, 2]) setup_caddy();
+//translate([0,-10-fulllength, 2+coinheight]) setup_caddy();
 
+setup_caddy();
 
 
