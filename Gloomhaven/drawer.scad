@@ -2,6 +2,9 @@
 function radians(d) = d * PI / 180.0;
 
 epsilon = 0.001;
+//huge = 1000 * 100; // 100 meters
+
+huge = 400;
 
 module half_cylinder(r,h) {
   // half a cylinder (half toward positive X axis)
@@ -143,4 +146,43 @@ module anti_fillet(r,h) {
 
 module anti_fillet_nw(r,h) {
   rotate([0,0,90]) anti_fillet(r,h);
+}
+
+
+module huge_cube_above(z) {
+ translate([-huge,-huge,z]) cube([2*huge,2*huge,huge]);
+}
+
+module huge_cube_right(x) {
+ translate([x,-huge,-huge]) cube([huge,2*huge,2*huge]);
+}
+
+
+
+module above(z) {
+  intersection () {
+    huge_cube_above(z);
+    children();
+  }
+}
+
+module below(z) {
+  difference () {
+    union () { children(); }
+    color("black"); huge_cube_above(z);
+  }
+}
+
+module right(x) {
+  intersection () {
+    children();
+    huge_cube_right(x);
+  }
+}
+
+module left(x) {
+  difference () {
+    children();
+    huge_cube_right(x);
+  }
 }
