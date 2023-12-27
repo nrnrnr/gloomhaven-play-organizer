@@ -778,14 +778,17 @@ module overall_cover () {
 
         clearance = 0.3;
         pegheight = 5;
+        spikeheight=3;
 
         color("blue")
         translate([0,0,-cardheight])
           union () {
-            lidhole(1,width=lidholediameter-2*clearance,depth=pegheight+epsilon);
-            lidhole(2,width=lidholediameter-2*clearance,depth=pegheight+epsilon);
-            lidhole(1,width=lidholediameter-1*clearance,depth=pegheight-2+epsilon);
-            lidhole(2,width=lidholediameter-1*clearance,depth=pegheight-2+epsilon);
+            lidhole(1,width=lidholediameter-clearance,depth=pegheight+epsilon);
+            lidhole(2,width=lidholediameter-clearance,depth=pegheight+epsilon);
+            lidholetranslate(1,depth=pegheight+spikeheight)
+              cylinder(d2=lidholediameter-clearance,d1=0.5,h=spikeheight+epsilon);
+            lidholetranslate(2,depth=pegheight+spikeheight)
+              cylinder(d2=lidholediameter-clearance,d1=0.5,h=spikeheight+epsilon);
           }
 
 
