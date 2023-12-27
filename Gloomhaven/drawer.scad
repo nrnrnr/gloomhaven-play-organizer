@@ -145,7 +145,18 @@ module anti_fillet(r,h) {
 }
 
 module anti_fillet_nw(r,h) {
+  translate([r,-r,0])
   rotate([0,0,90]) anti_fillet(r,h);
+}
+
+
+module anti_fillet_sw(r,h) {
+  translate([r,r,0]) rotate([0,0,180]) anti_fillet(r,h);
+}
+
+module anti_fillet_se(r,h) {
+  translate([-r,r,0])
+  rotate([0,0,-90]) anti_fillet(r,h);
 }
 
 
@@ -155,6 +166,10 @@ module huge_cube_above(z) {
 
 module huge_cube_right(x) {
  translate([x,-huge,-huge]) cube([huge,2*huge,2*huge]);
+}
+
+module huge_cube_behind(y) {
+ translate([-huge,y,-huge]) cube([2*huge,huge,2*huge]);
 }
 
 
@@ -168,8 +183,8 @@ module above(z) {
 
 module below(z) {
   difference () {
-    union () { children(); }
-    color("black"); huge_cube_above(z);
+    children();
+    huge_cube_above(z);
   }
 }
 
@@ -184,5 +199,12 @@ module left(x) {
   difference () {
     children();
     huge_cube_right(x);
+  }
+}
+
+module behind(y) {
+  intersection () {
+    children();
+    huge_cube_behind(y);
   }
 }
