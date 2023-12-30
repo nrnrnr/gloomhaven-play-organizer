@@ -733,7 +733,7 @@ module overall_cover () {
 
   difference () {
     union () {
-        translate([coinsep,0,0]) cube([fullwidth,fulllength,overallcoverthickness]);
+        translate([-coinsep,0,0]) cube([fullwidth,fulllength,overallcoverthickness]);
         // ceilings measured with caliper depth, so (to a degree) compressed
         cityeventceiling = 6;
         roadeventceiling = 10.4;
