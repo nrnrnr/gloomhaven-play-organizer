@@ -810,6 +810,12 @@ module overall_cover () {
     translate([fullwidth/2-coinsep,0.3*fulllength,overallcoverthickness-textthickness])
       linear_extrude(textthickness+epsilon)
       pirata("Setup & Play Supplies",size=11);
+
+    thumbheight=25;
+    translate([-coinsep-10,fulllength/2,1-thumbheight])
+    cylinder(d2=30,d1=10,h=25);
+    translate([fullwidth+coinsep+10,fulllength/2,1-thumbheight])
+    cylinder(d2=30,d1=10,h=25);
   }
 }
 
