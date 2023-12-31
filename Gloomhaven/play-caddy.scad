@@ -613,10 +613,6 @@ module setup_caddy() {
   difference () {
     translate([-coinsep,0,0]) cube([fullwidth, tokenlength+coinlength+coinsep/3+epsilon, caddyheight]);
     setup_caddy_contents(negative=true);
-    translate([setup_registration_leftx,setup_registration_y,-epsilon])
-      cylinder(r=lidholediameter/2,h=15); // registration hole
-    translate([setup_registration_rightx,setup_registration_y,-epsilon])
-      cylinder(r=lidholediameter/2,h=15); // registration hole
     translate ([wrapwidthevents+exteriorcardsep-fradius-coinsep,
                 exteriorcardsep-fradius,
                 floor])
@@ -732,30 +728,11 @@ module token_cover_wings (index,y=6,z=tokenheight) {
 
 module token_cover () {
   thickness = coinheight - tokenheight;
+  cube([fullwidth,tokenlength,thickness]);
   for (i=[0:1:7]) {
     token_cover_wings(i,z=0);
     translate([coinsep + i*(tokenwidth+coinsep) + (tokenwidth-tonguewidth)/2,0,epsilon])
       token_cover_tongue(theta=40);
-  }
-  difference () {
-    cube([fullwidth,tokenlength,thickness]);
-    translate([coinsep,0,0]) union () {
-      translate([setup_registration_leftx, setup_registration_y, 2])
-        cylinder(r=lidholediameter/2,h=thickness);
-      translate([setup_registration_rightx, setup_registration_y, 2])
-        cylinder(r=lidholediameter/2,h=thickness);
-      if (false) { // not gluing cover, so don't need to deepen thumb cutouts
-                   // just lift the caddy off the cover
-        translate([cards1x+eventcardwidth/2,-epsilon,floor+50])
-          thumbcutout();
-        translate([cards2x+smallcardwidth/2,-epsilon,floor+50])
-          thumbcutout();
-        translate([cards3x+smallcardwidth/2,-epsilon,floor+50])
-          thumbcutout();
-        translate([cards4x+eventcardwidth/2,-epsilon,floor+50])
-          thumbcutout();
-      }
-    }
   }
 }
 
