@@ -1,5 +1,43 @@
-$fa = 2;    // minimum angle (fine resolution) // was 1
+////////////////////////////////////////////////////////////////
+//
+// Organizer/Storage for Gloomhaven setup and play
+//
+//
+//
+
+//  This organizer is split into two trays: 
+//
+//    * The top tray holds supplies that are needed during scenario setup:
+//
+//        - City events and road events
+//        - Battle goals
+//        - Monster attack-modifier deck
+//        - Player -1 penalty cards (if needed)
+//        - Number tokens (if needed)
+//        - Letter tokens (if needed)
+//
+//    * The bottom tray holds supplies that are not put into play
+//      immediately, but that may need to be accessible during play:
+//
+//        - Bless and curse cards
+//        - Coins
+//        - Damage tokens
+//        - Condition tokens
+//
+
+
+
+$fa = 2;    // minimum angle (fine resolution)
 $fs = 0.4;  // minimum size (fine resolution)
+
+use <drawer.scad>  // reusable primitives
+
+epsilon = 0.001;   // help avoid issues with floating-point rounding error
+
+drawer_inserts = false;   // if true, model thin sheets for bottoms of drawers
+add_text       = true;    // include text labels (set to false cuts rendering time)
+
+
 
 ////////////////
 //
@@ -11,12 +49,8 @@ $fs = 0.4;  // minimum size (fine resolution)
 // total clearance in box is roughly tokenheight + 45mm = 61mm
 //       clearance above coinheight = 41mm
 
-use <drawer.scad>
 
-epsilon = 0.001;
 
-inserts = false;
-add_text = true;
 
 tokenwidth = 29.8;
 tokensep = 1.2;
@@ -31,7 +65,7 @@ floor=1;
 
 module token(index) {
   translate([index * (tokenwidth + tokensep),0,0])
-    drawer(w=tokenwidth,h=tokenheight,l=tokenlength,sep=tokensep,theta=45,floor=floor,insert=inserts);
+    drawer(w=tokenwidth,h=tokenheight,l=tokenlength,sep=tokensep,theta=45,floor=floor,insert=drawer_inserts);
 }
 
 coinsep = tokensep;
@@ -41,7 +75,7 @@ coinheight = 20;
 
 module coin(index) {
   translate([index * (coinwidth + coinsep),tokenlength,0])
-    drawer(w=coinwidth,h=coinheight,l=coinlength,sep=coinsep,theta=45,floor_y_shift=2*coinlength+30,floor=floor,insert=inserts);
+    drawer(w=coinwidth,h=coinheight,l=coinlength,sep=coinsep,theta=45,floor_y_shift=2*coinlength+30,floor=floor,insert=drawer_inserts);
 }
 
 cardthickness = 5;
