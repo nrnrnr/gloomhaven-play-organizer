@@ -7,7 +7,7 @@ epsilon = 0.001;
 huge = 400;
 
 module half_cylinder(r,h) {
-  // half a cylinder (half toward positive X axis)
+  // half a cylinder (half toward positive X axis), centered on Z
   difference() {
     cylinder(r=r,h=h,center=true);
 
@@ -208,3 +208,64 @@ module behind(y) {
     huge_cube_behind(y);
   }
 }
+
+// ----------------------------------------------------------------
+
+module hollow_cylinder(r1,r2,h,center=false) {
+  difference () {
+    cylinder(r=r2,h=h,center=center);
+    translate([0,0,-epsilon])
+      cylinder(r=r1,h=h+2*epsilon,center=center);
+  }
+}
+
+
+// need theta such that (1 - cos theta) / sin theta = 2 * indent / curved
+
+function curved_theta_function(theta) = (1 - cos(theta)) / sin(theta);
+
+function curved_theta_delta(theta,curved,indent) =
+  curved_theta_function(theta) - 2 * indent/ curved;
+
+target_angle_epsilon = 0.005;
+
+function best_curved_theta(curved,indent,lo,mid,hi) =
+  curved_theta_delta(mid,curved,indent) > target_angle_epsilon
+    ? best_curved_theta(curved,indent,lo, (lo + mid)/2, mid)
+    : curved_theta_delta(mid,curved,indent) < -target_angle_epsilon
+        ? best_curved_theta(curved,indent,mid, (mid+hi)/2, hi)
+        : mid;
+
+module curved_band(straight,curved,height,thickness,indent) {
+  // step one: compute R and theta
+
+  theta = best_curved_theta(curved,indent,0.1,22.5,45);
+  R = curved / (2 * sin(theta));
+  
+  echo(oneminuscos=1-cos(theta),sintheta=sin(theta),ratio=curved_theta_function(theta),parmratio=2*indent/curved);
+  echo(R=R,curved=curved,indent=indent,theta=theta,curved_from_theta=2*R*sin(theta),indent_from_theta=R-R*cos(theta));
+  
+
+  // dimensions given are *inside* dimensions, and origin
+  // is on inside corner
+  outerx = straight + 2 * thickness;
+  outery = curved   + 2 * thickness;
+  intersection () {
+    translate([-thickness,-thickness,0])
+      cube([outerx,outery,height]);
+    union () {
+      translate([-thickness,-thickness,0])
+        cube([outerx,thickness,height]);
+      translate([-thickness,curved,0])
+        cube([outerx,thickness,height]);
+      translate([-R*cos(theta)-thickness,curved/2,0])
+        hollow_cylinder(r1=R,r2=R+thickness,h=height);
+      translate([straight+R*cos(theta)+thickness,curved/2,0])
+        hollow_cylinder(r1=R,r2=R+thickness,h=height);
+    }
+  }
+}
+//
+//
+//           
+//
