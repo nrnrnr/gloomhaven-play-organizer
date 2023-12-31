@@ -814,7 +814,25 @@ module overall_cover () {
   }
 }
 
-  
+
+module end_band() {
+  bandlength = fulllength+1.5;
+  indent = 3+1.5;
+  thickness = 2;
+  height=62.8;
+  width = 13;
+  curved_band(straight=height,curved=bandlength,height=width,thickness=thickness,indent=indent);
+  //   // side band all the way across has to flex, so not a great plan
+  //translate([(height-width/2)/2,-epsilon,0])
+  //  cube([width/2,bandlength+2*epsilon,floor]);
+  stop_thickness = 1;
+  translate([height/2,0,stop_thickness/2])
+    rotate([0,0,90])
+    half_cylinder(r=height/5,h=stop_thickness);
+  translate([height/2,bandlength,stop_thickness/2])
+    rotate([0,0,-90])
+    half_cylinder(r=height/5,h=stop_thickness);
+}  
   // city events
 
 
@@ -896,9 +914,16 @@ module sleeve_test() {
 }
 
 
-setup_caddy();
-color("Pink") translate([0,0,caddyheight+10]) overall_cover();
+//setup_caddy();
+//translate([0,fulllength,fulllength+caddyheight])
+//color("Pink") rotate([-90,0,0]) overall_cover();
+//
+//
+//translate([0,-30,0]) hollow_cylinder(r1=15,r2=17,h=30);
 
+//translate([-13,0,0])
+//rotate([0,90,0])
+//translate([-63,0,0])
 //overall_cover_test();
 
 
@@ -912,6 +937,7 @@ color("Pink") translate([0,0,caddyheight+10]) overall_cover();
 //  rotate([0,0,-90])
 //  card_separator(width=sleevedsmallwidth, height=sleevedsmallheight, front=sleevedcardsfront, wrap=wrapwidthsmall, showtext=false);
 
+end_band();
 
 //sleeve_test();
 
