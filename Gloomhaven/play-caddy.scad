@@ -870,6 +870,26 @@ module end_band() {
   // city events
 
 
+
+module exploded_diagram(deltax=0,deltay=0,deltaz=0) {
+  colors = ["#b8b8ff", "#c8c8ff", "#dadaff", "#e8e8ff","#aaaaff"];
+  dx = deltax;
+  dy = deltay;
+  dz = deltaz;
+
+  translate([coinsep,0,0]) color(colors[0]) caddy();
+  translate([dx,-2*dy,dz+tokenheight+floor]) color(colors[1]) token_cover();
+  translate([2*dx+coinsep,-dy,2*dz+coinheight+floor]) color(colors[2]) setup_caddy();
+  translate([3*dx+coinsep,0,3*dz+coinheight+floor+caddyheight]) color(colors[3]) overall_cover();
+
+  translate([-min(15*dz,20),0,0])
+  translate([-1,-3/4,coinheight+floor+caddyheight+2.5]) rotate([0,90,0]) color(colors[4]) end_band();
+
+  translate([min(15*dz,20),0,0])
+  translate([fullwidth+1,-3/4,-3/4]) rotate([0,-90,0]) color(colors[4]) end_band();
+}
+
+
 //////////////////////////////////////////////////////////////////////////////////
 //////
 /////   tests
@@ -971,7 +991,7 @@ module sleeve_test() {
 //  rotate([0,0,-90])
 //  card_separator(width=sleevedsmallwidth, height=sleevedsmallheight, front=sleevedcardsfront, wrap=wrapwidthsmall, showtext=false);
 
-end_band();
+//end_band();
 
 //sleeve_test();
 
@@ -995,3 +1015,5 @@ end_band();
 
 //translate([0,-30,0]) color("LightCyan") 
 //token_cover_tongue(theta=25);
+
+exploded_diagram(deltaz=5,deltay=5);
