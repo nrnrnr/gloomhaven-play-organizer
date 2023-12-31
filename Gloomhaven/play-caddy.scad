@@ -7,7 +7,7 @@
 
 //  This organizer is split into two trays: 
 //
-//    * The top tray holds supplies that are needed during scenario setup:
+//    * The upper tray holds supplies that are needed during scenario setup:
 //
 //        - City events and road events
 //        - Battle goals
@@ -16,7 +16,7 @@
 //        - Number tokens (if needed)
 //        - Letter tokens (if needed)
 //
-//    * The bottom tray holds supplies that are not put into play
+//    * The lower tray holds supplies that are not put into play
 //      immediately, but that may need to be accessible during play:
 //
 //        - Bless and curse cards
@@ -37,6 +37,12 @@ epsilon = 0.001;   // help avoid issues with floating-point rounding error
 drawer_inserts = false;   // if true, model thin sheets for bottoms of drawers
 add_text       = true;    // include text labels (set to false cuts rendering time)
 
+///////////////////
+///
+///  Dimensions of Gloomhaven components
+
+smallcardheight = 68;  // AMD cards and battle goals
+smallcardwidth = 44;
 
 
 ////////////////
@@ -46,116 +52,113 @@ add_text       = true;    // include text labels (set to false cuts rendering ti
 // are regrettable.
 //
 
-// total clearance in box is roughly tokenheight + 45mm = 61mm
-//       clearance above coinheight = 41mm
 
 
+/////// drawers to hold condition tokens
 
+tokenheight = 25 - 9;  // depth/height of a token drawer in Z direction
+tokenwidth = 29.8;     // width of drawer for tokens in X direction
+tokensep = 1.2;        // thickness of separator between drawers
+ntokens = 8;           // number of drawers
+tokenlength = 40;      // length of a token drawer in Y direction
 
-tokenwidth = 29.8;
-tokensep = 1.2;
-ntokens = 8;
-fullwidth = ntokens * (tokensep + tokenwidth) + tokensep;
-tokenlength = 40;
+fullwidth =            // full size of lower tray (and the whole unit), X direction
+  ntokens * (tokensep + tokenwidth) + tokensep;
 
-width = fullwidth;
-tokenheight = 25 - 9;
+floor=1;  // thickness of the floor under the token/coin drawers
 
-floor=1;
-
-module token(index) {
+module token_drawer(index) {
+  // place a token drawer at position `index` where `0 <= index < ntokens`
   translate([index * (tokenwidth + tokensep),0,0])
-    drawer(w=tokenwidth,h=tokenheight,l=tokenlength,sep=tokensep,theta=45,floor=floor,insert=drawer_inserts);
+    drawer(w=tokenwidth,h=tokenheight,l=tokenlength,sep=tokensep,
+           theta=45,floor=floor,insert=drawer_inserts);
 }
 
-coinsep = tokensep;
-coinwidth = (width - 4 * coinsep) / 3.0;
-coinlength = 63;
-coinheight = 20;
+//////// drawers to hold coins and damage tokens
 
-module coin(index) {
+coinsep = tokensep;     // width of a separator between coin drawers
+coinwidth =             // width of a single coin drawer in X direction
+  (fullwidth - 4 * coinsep) / 3.0;
+coinlength = 63;        // length of a coin drawer in Y direction
+coinheight = 20;        // height of a coin drawer in Z direction
+
+module coin_drawer(index) {
+  // place a token drawer at position `index` where `0 <= index < 3`
   translate([index * (coinwidth + coinsep),tokenlength,0])
     drawer(w=coinwidth,h=coinheight,l=coinlength,sep=coinsep,theta=45,floor_y_shift=2*coinlength+30,floor=floor,insert=drawer_inserts);
 }
 
-cardthickness = 5;
-carddepth = 20;
-cardheight = max(carddepth + floor, coinheight);
-cardwidth = 77;
 
-module cardtranslate(index) {
+// slots to hold bless and curse cards
+
+cursecardthickness = 5;   // measures a deck of sleeved curse or bless cards
+cursecardslotdepth = 20;  
+cursecardheight =         // Z height of front rim of curse card slot
+  max(cursecardslotdepth + floor, coinheight);
+cursecardslotwidth = 77;           // X width of a curse-card slot
+
+module cursecardboxtranslate(index) {
+   // place child at lower left front corner of a cube containing a curse-card slot?
+   // or is it above the floor?
    translate([index * (coinwidth+coinsep) - coinsep, tokenlength+coinlength,0])
    children();
 }
 
-module rear_card_translate(index,z=0,width=cardwidth) {
-   cardtranslate(index)
+module cursecardslottranslate(index,z=0,width=cursecardslotwidth) {
+   // place child at left front corner of an empty slot for curse cards, with given Z
+   cursecardboxtranslate(index)
      translate([coinsep+index*(coinwidth-width)/2, coinsep, z])
         children();
 }
 
-
-
-module cardbounding(index) {
-   cardtranslate(index)
-   cube([coinwidth+2*coinsep+epsilon, cardthickness+ 2 * coinsep+epsilon, cardheight]);
+module cursecardboundingbox(index) {
+   // place a cube of the right size and position to enclose a curse-card slot, 
+   // plus it matches up with the other dimensions we are looking for.
+   // (essentially the cube we will punch the slot out of)
+   cursecardboxtranslate(index)
+     cube([coinwidth+2*coinsep+epsilon, cursecardthickness+ 2 * coinsep+epsilon, cursecardheight]);
 }
 
-fulllength = tokenlength+coinlength + cardthickness + 2 * coinsep;
+fulllength = // Y direction length of the entire structure
+  tokenlength + coinlength + cursecardthickness + 2 * coinsep;
 
 
-module displayed_cards(index) {
-  translate([0,0,floor])
-    cardtranslate(index)
-      cube([cardwidth, cardthickness, 46]);
-}
-
-
-smallcardheight = 68;
-smallcardwidth = 44;
-
-
-module rear_card_slot(index) {
-  width = cardwidth;
+module cursecardslot(index) {
+  // place appropriately formed cube with a curse-card slot cut into it
+  width = cursecardslotwidth;
   sep =	(fullwidth - 3 * width) / 4;
-  depth = carddepth;
-  height = cardheight;
-  chamfer = (cardthickness + coinsep) / sqrt(2);
-
-//  echo(coinwidth=coinwidth,coinsep=coinsep);
+  depth = cursecardslotdepth;
+  height = cursecardheight;
+  chamfer = (cursecardthickness + coinsep) / sqrt(2);
 
   difference () {
-    cardbounding(index);
-//    cardtranslate(index)
-//      translate([coinsep+index*(coinwidth-width)/2, coinsep, height-depth])
-      rear_card_translate(index)
-        union () {
-          cube([width+epsilon,cardthickness+epsilon,smallcardwidth+epsilon]);
-          translate([0,cardthickness/2,depth-chamfer/sqrt(2)]) 
-            rotate([45,0,0]) cube([width+epsilon,chamfer,chamfer]);
-        }
+    cursecardboundingbox(index);
+
+    cursecardslottranslate(index)
+      union () {
+        cube([width+epsilon,cursecardthickness+epsilon,smallcardwidth+epsilon]); // slot
+        translate([0,cursecardthickness/2,depth-chamfer/sqrt(2)])  // chamfers
+          rotate([45,0,0]) cube([width+epsilon,chamfer,chamfer]);
+      }
    }
 }
 
 module rear_cards(index) {
-  width = cardwidth;
+  // place a deck of curse (or bless) cards with the given index
+  width = cursecardslotwidth;
   sep =	(fullwidth - 3 * width) / 4;
-  depth = carddepth;
-  height = cardheight;
-  chamfer = (cardthickness + coinsep) / sqrt(2);
+  depth = cursecardslotdepth;
+  height = cursecardheight;
+  chamfer = (cursecardthickness + coinsep) / sqrt(2);
 
-//  echo(coinwidth=coinwidth,coinsep=coinsep);
-
-    cardtranslate(index)
-      translate([coinsep+index*(coinwidth-width)/2, coinsep, height-depth])
-        union () {
-          cube([width+epsilon,cardthickness+epsilon,smallcardwidth+epsilon]);
-        }
+  cursecardboxtranslate(index)
+    translate([coinsep+index*(coinwidth-width)/2, coinsep, height-depth])
+      cube([width+epsilon,cursecardthickness+epsilon,smallcardwidth+epsilon]);
 }
 
 
 
-blockwidth = coinsep + (coinwidth - cardwidth) * 1.5;
+blockwidth = coinsep + (coinwidth - cursecardslotwidth) * 1.5;
 
 
 lidholediameter = 3;
@@ -175,23 +178,23 @@ module lidinsert(clearance=octagonclearance) {
 
 
 module lidholetranslate(index,depth) {
-  cardtranslate(index)
-    translate([(3 - index) * (cardwidth-coinwidth)/2 + blockwidth/2, cardthickness/2+coinsep, cardheight-depth])
+  cursecardboxtranslate(index)
+    translate([(3 - index) * (cursecardslotwidth-coinwidth)/2 + blockwidth/2, cursecardthickness/2+coinsep, cursecardheight-depth])
     children();
 }
 
-module lidhole(index,depth=cardheight-5,width=lidholediameter) {
+module lidhole(index,depth=cursecardheight-5,width=lidholediameter) {
   lidholetranslate(index,depth)
     cylinder(h=depth+epsilon,r=width/2);
 }
 
 
 module lidtower(index) { // for upper caddy
-  rear_card_translate(index)
+  cursecardslottranslate(index)
     translate([-blockwidth, -coinsep , 0]) 
     difference () {
-      cube([blockwidth, cardthickness + 2 * coinsep+epsilon, caddyheight + epsilon]);
-      translate([blockwidth/2,cardthickness/2 + coinsep,-epsilon])
+      cube([blockwidth, cursecardthickness + 2 * coinsep+epsilon, caddyheight + epsilon]);
+      translate([blockwidth/2,cursecardthickness/2 + coinsep,-epsilon])
         cylinder(h=caddyheight+3*epsilon,r=lidholediameter/2);
   }
 }
@@ -255,18 +258,18 @@ module caddy () {
       difference () {
         union () {
           for (i=[0:1:7]) {
-            token(i);
+            token_drawer(i);
           }
           for (i=[0:1:2]) {
-            coin(i);
+            coin_drawer(i);
           }
         }
         for (i=[0:1:2]) {
-          cardbounding(i);
+          cursecardboundingbox(i);
         }
       }
       for (i=[0:1:2]) {
-        rear_card_slot(i);
+        cursecardslot(i);
       }
     }
     lidhole(1);
@@ -300,7 +303,7 @@ module play_caddy() {
 // ruler
 //for (i=[0:1:35]) translate([-tokensep+i-0.05, 0, 14]) color("blue") cube([0.1, 2, 7]);
 
-//difference () { coin(0); card_label(0, "Player Curse"); }
+//difference () { coin_drawer0); card_label(0, "Player Curse"); }
 
 ////////////////////////////////////////////////////////////////
 
@@ -600,9 +603,9 @@ module setup_caddy() {
   // rear wings on the sides
 
   translate([-coinsep,tokenlength+coinlength,0])
-    cube([coinsep, cardthickness+2*coinsep, caddyheight]);
+    cube([coinsep, cursecardthickness+2*coinsep, caddyheight]);
   translate([fullwidth-2*coinsep,tokenlength+coinlength,0])
-    cube([coinsep, cardthickness+2*coinsep, caddyheight]);
+    cube([coinsep, cursecardthickness+2*coinsep, caddyheight]);
 
 
   // main item
@@ -815,7 +818,7 @@ module overall_cover () {
         spikeheight=3;
 
         color("blue")
-        translate([0,0,-cardheight])
+        translate([0,0,-cursecardheight])
           union () {
             lidhole(1,width=lidholediameter-clearance,depth=pegheight+epsilon);
             lidhole(2,width=lidholediameter-clearance,depth=pegheight+epsilon);
@@ -829,12 +832,12 @@ module overall_cover () {
 
         translate([reargap,0,-rearcardceiling+1])
           union () {
-            rear_card_translate(0)
-              cube([cardwidth-2*reargap, cardthickness+coinsep, rearcardceiling-1+epsilon]);
-            rear_card_translate(1)
-              cube([cardwidth-2*reargap, cardthickness+coinsep, rearcardceiling-1+epsilon]);
-            rear_card_translate(2)
-              cube([cardwidth-2*reargap, cardthickness+coinsep, rearcardceiling-1+epsilon]);
+            cursecardslottranslate(0)
+              cube([cursecardslotwidth-2*reargap, cursecardthickness+coinsep, rearcardceiling-1+epsilon]);
+            cursecardslottranslate(1)
+              cube([cursecardslotwidth-2*reargap, cursecardthickness+coinsep, rearcardceiling-1+epsilon]);
+            cursecardslottranslate(2)
+              cube([cursecardslotwidth-2*reargap, cursecardthickness+coinsep, rearcardceiling-1+epsilon]);
         }
     }
     textthickness = 0.6;
@@ -871,7 +874,7 @@ module end_band() {
 
 
 
-module exploded_diagram(deltax=0,deltay=0,deltaz=0) {
+module exploded_diagram(deltax=0,deltay=0,deltaz=0,contents=true) {
   colors = ["#b8b8ff", "#c8c8ff", "#dadaff", "#e8e8ff","#aaaaff"];
   dx = deltax;
   dy = deltay;
@@ -880,6 +883,9 @@ module exploded_diagram(deltax=0,deltay=0,deltaz=0) {
   translate([coinsep,0,0]) color(colors[0]) caddy();
   translate([dx,-2*dy,dz+tokenheight+floor]) color(colors[1]) token_cover();
   translate([2*dx+coinsep,-dy,2*dz+coinheight+floor]) color(colors[2]) setup_caddy();
+  if (contents) {
+    translate([2*dx+coinsep,-dy,2*dz+coinheight+floor]) setup_caddy_contents();
+  }
   translate([3*dx+coinsep,0,3*dz+coinheight+floor+caddyheight]) color(colors[3]) overall_cover();
 
   translate([-min(15*dz,20),0,0])
@@ -1016,4 +1022,4 @@ module sleeve_test() {
 //translate([0,-30,0]) color("LightCyan") 
 //token_cover_tongue(theta=25);
 
-exploded_diagram(deltaz=5,deltay=5);
+exploded_diagram(deltaz=5,deltay=5,contents=false);
