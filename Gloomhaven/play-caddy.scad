@@ -47,7 +47,7 @@ smallcardwidth = 44;
 
 ////////////////
 //
-// The outer left edge of the caddy is at X = -coinsep,
+// The outer left edge of the lower_tray is at X = -coinsep,
 // and the bottom edge is at Z = -floor.  These decisions
 // are regrettable.
 //
@@ -97,6 +97,9 @@ cursecardheight =         // Z height of front rim of curse card slot
   max(cursecardslotdepth + floor, coinheight);
 cursecardslotwidth = 77;           // X width of a curse-card slot
 
+fulllength = // Y direction length of the entire structure
+  tokenlength + coinlength + cursecardthickness + 2 * coinsep;
+
 module cursecardboxtranslate(index) {
    // place child at lower left front corner of a cube containing a curse-card slot?
    // or is it above the floor?
@@ -119,10 +122,6 @@ module cursecardboundingbox(index) {
      cube([coinwidth+2*coinsep+epsilon, cursecardthickness+ 2 * coinsep+epsilon, cursecardheight]);
 }
 
-fulllength = // Y direction length of the entire structure
-  tokenlength + coinlength + cursecardthickness + 2 * coinsep;
-
-
 module cursecardslot(index) {
   // place appropriately formed cube with a curse-card slot cut into it
   width = cursecardslotwidth;
@@ -133,7 +132,6 @@ module cursecardslot(index) {
 
   difference () {
     cursecardboundingbox(index);
-
     cursecardslottranslate(index)
       union () {
         cube([width+epsilon,cursecardthickness+epsilon,smallcardwidth+epsilon]); // slot
@@ -143,49 +141,46 @@ module cursecardslot(index) {
    }
 }
 
-module rear_cards(index) {
-  // place a deck of curse (or bless) cards with the given index
-  width = cursecardslotwidth;
-  sep =	(fullwidth - 3 * width) / 4;
-  depth = cursecardslotdepth;
-  height = cursecardheight;
-  chamfer = (cursecardthickness + coinsep) / sqrt(2);
-
-  cursecardboxtranslate(index)
-    translate([coinsep+index*(coinwidth-width)/2, coinsep, height-depth])
-      cube([width+epsilon,cursecardthickness+epsilon,smallcardwidth+epsilon]);
-}
-
-
+// blocks between curse/bless cards (hold alignment holes/pegs)
 
 blockwidth = coinsep + (coinwidth - cursecardslotwidth) * 1.5;
 
+alignmentholediameter = 3;
+alignmentpegclearance = 0.3; // for printing pegs into parts
+pegheight = 5; // height of peg
+spikeheight = 3; // height of cone ending in peg tip
+pegtipdiameter = 0.5;
 
-lidholediameter = 3;
-octagonclearance = 0.1; 
+octagonclearance = 0.1; // for placing separately printed octagonal pegs in holes
   // 0.3 is too loose
   // 0.2 slides with zero resistance but is also a bit loose
   // 0.1 slides with notable friction but not a lot of force;
   //     one end may require sanding
 
-module lidinsert(clearance=octagonclearance) {
-  r = lidholediameter/2-clearance;
-  translate([0,0,r*cos(360/16)])
-  rotate([0,-90,0])
-  rotate([0,0,360/16])
-  cylinder(h=30,r=r,$fn=8);
-}
-
-
-module lidholetranslate(index,depth) {
+module alignmentholetranslate(index,depth=-epsilon) {
+  // place child at the center of the indexed alignment hole (1 or 2),
+  // at given depth below the rim of the curse-card slots
   cursecardboxtranslate(index)
-    translate([(3 - index) * (cursecardslotwidth-coinwidth)/2 + blockwidth/2, cursecardthickness/2+coinsep, cursecardheight-depth])
-    children();
+    translate([(3 - index) * (cursecardslotwidth-coinwidth)/2 + blockwidth/2,
+               cursecardthickness/2+coinsep,
+               cursecardheight-depth])
+      children();
 }
 
-module lidhole(index,depth=cursecardheight-5,width=lidholediameter) {
-  lidholetranslate(index,depth)
+module alignmenthole(index,depth=cursecardheight-5,width=alignmentholediameter) {
+  alignmentholetranslate(index,depth)
     cylinder(h=depth+epsilon,r=width/2);
+}
+
+module alignmentpeg(index,depth=pegheight,diameter=alignmentholediameter-alignmentpegclearance) {
+  module peg() {
+    cylinder(h=depth+epsilon,d=diameter);
+    translate([0,0,depth])
+      cylinder(d1=diameter,d2=pegtipdiameter,h=spikeheight+epsilon);
+  }
+
+  alignmentholetranslate(1) peg();
+  alignmentholetranslate(2) peg();
 }
 
 
@@ -195,7 +190,7 @@ module lidtower(index) { // for upper caddy
     difference () {
       cube([blockwidth, cursecardthickness + 2 * coinsep+epsilon, caddyheight + epsilon]);
       translate([blockwidth/2,cursecardthickness/2 + coinsep,-epsilon])
-        cylinder(h=caddyheight+3*epsilon,r=lidholediameter/2);
+        cylinder(h=caddyheight+3*epsilon,r=alignmentholediameter/2);
   }
 }
     
@@ -251,10 +246,12 @@ module caddy_label(s, size=10) {
 //                Z regenerate
 
 
-module caddy () {
+module lower_tray () {
 
   difference () {
     union () {
+      alignmentpeg(1);
+      alignmentpeg(2);
       difference () {
         union () {
           for (i=[0:1:7]) {
@@ -272,8 +269,8 @@ module caddy () {
         cursecardslot(i);
       }
     }
-    lidhole(1);
-    lidhole(2);
+    // alignmenthole(1); // prototype had holes; final version has pegs
+    // alignmenthole(2);
     card_label(0, "Player Curse");
     card_label(1, "Bless");
     card_label(2, "Monster Curse");
@@ -291,14 +288,10 @@ module caddy () {
 
 }
 
-module play_caddy() {
-  caddy();
-}
-
 
 //translate([0,-10,0]) text("P", font = "gloomhaven conditions", halign="center", size = 6, valign="baseline");
 
-//translate ([0, 10, 0]) caddy();
+//translate ([0, 10, 0]) lower_tray();
 
 // ruler
 //for (i=[0:1:35]) translate([-tokensep+i-0.05, 0, 14]) color("blue") cube([0.1, 2, 7]);
@@ -474,7 +467,24 @@ wrapwidthsmall = 6;
 
   numbery = cardsfront + smallcardheight + cardleeway + 3;
 
-module setup_caddy_contents (negative=false) {
+module curse_or_bless_cards(index) {
+  // place a deck of curse (or bless) cards with the given index
+  width = cursecardslotwidth;
+  sep =	(fullwidth - 3 * width) / 4;
+  depth = cursecardslotdepth;
+  height = cursecardheight;
+  chamfer = (cursecardthickness + coinsep) / sqrt(2);
+
+  cursecardboxtranslate(index)
+    translate([coinsep+index*(coinwidth-width)/2, coinsep, height-depth])
+      cube([width+epsilon,cursecardthickness+epsilon,smallcardwidth+epsilon]);
+}
+
+
+
+
+
+module upper_tray_contents (negative=false) {
   // city events
   // road events
   // battle goals
@@ -581,9 +591,9 @@ module setup_caddy_contents (negative=false) {
 
 
   color("purple") union () {
-    rear_cards(0);
-    rear_cards(1);
-    rear_cards(2);
+    curse_or_bless_cards(0);
+    curse_or_bless_cards(1);
+    curse_or_bless_cards(2);
   }
 }
 
@@ -591,7 +601,7 @@ setup_registration_leftx = cards2x-interiorcardsep/2;
 setup_registration_rightx = cards4x+wrapwidthevents/2;
 setup_registration_y = exteriorcardsep/2;
 
-module setup_caddy() {
+module upper_tray() {
   fradius = exteriorcardsep/2; // for fillets
 
     
@@ -612,7 +622,7 @@ module setup_caddy() {
 
   difference () {
     translate([-coinsep,0,0]) cube([fullwidth, tokenlength+coinlength+coinsep/3+epsilon, caddyheight]);
-    setup_caddy_contents(negative=true);
+    upper_tray_contents(negative=true);
     translate ([wrapwidthevents+exteriorcardsep-fradius-coinsep,
                 exteriorcardsep-fradius,
                 floor])
@@ -790,19 +800,16 @@ module overall_cover () {
         translate([cards3midx, numbery+11.5,gap-letterceiling])
           cylinder(r=letterradius-leeway/2,h=letterceiling-gap+epsilon);
 
-        clearance = 0.3;
-        pegheight = 5;
-        spikeheight=3;
 
         color("blue")
         translate([0,0,-cursecardheight])
           union () {
-            lidhole(1,width=lidholediameter-clearance,depth=pegheight+epsilon);
-            lidhole(2,width=lidholediameter-clearance,depth=pegheight+epsilon);
-            lidholetranslate(1,depth=pegheight+spikeheight)
-              cylinder(d2=lidholediameter-clearance,d1=0.5,h=spikeheight+epsilon);
-            lidholetranslate(2,depth=pegheight+spikeheight)
-              cylinder(d2=lidholediameter-clearance,d1=0.5,h=spikeheight+epsilon);
+            alignmenthole(1,width=alignmentholediameter-alignmentpegclearance,depth=pegheight+epsilon);
+            alignmenthole(2,width=alignmentholediameter-alignmentpegclearance,depth=pegheight+epsilon);
+            alignmentholetranslate(1,depth=pegheight+spikeheight)
+              cylinder(d2=alignmentholediameter-alignmentpegclearance,d1=0.5,h=spikeheight+epsilon);
+            alignmentholetranslate(2,depth=pegheight+spikeheight)
+              cylinder(d2=alignmentholediameter-alignmentpegclearance,d1=0.5,h=spikeheight+epsilon);
           }
 
 
@@ -857,11 +864,11 @@ module exploded_diagram(deltax=0,deltay=0,deltaz=0,contents=true) {
   dy = deltay;
   dz = deltaz;
 
-  translate([coinsep,0,0]) color(colors[0]) caddy();
+  translate([coinsep,0,0]) color(colors[0]) lower_tray();
   translate([dx,-2*dy,dz+tokenheight+floor]) color(colors[1]) token_cover();
-  translate([2*dx+coinsep,-dy,2*dz+coinheight+floor]) color(colors[2]) setup_caddy();
+  translate([2*dx+coinsep,-dy,2*dz+coinheight+floor]) color(colors[2]) upper_tray();
   if (contents) {
-    translate([2*dx+coinsep,-dy,2*dz+coinheight+floor]) setup_caddy_contents();
+    translate([2*dx+coinsep,-dy,2*dz+coinheight+floor]) upper_tray_contents();
   }
   translate([3*dx+coinsep,0,3*dz+coinheight+floor+caddyheight]) color(colors[3]) overall_cover();
 
@@ -887,14 +894,14 @@ module overall_cover_test () {
 }
 
 
-//play_caddy();
+//lower_tray();
 //translate([-coinsep,-4,tokenheight+4]) color("LightCyan") token_cover();
 
 // token_cover_test();
 
 // translate([0,0,coinheight-tokenheight]) rotate([180,0,0]) token_cover();
 
-//  setup_caddy();
+//  upper_tray();
 //  //translate([-coinsep,0,tokenheight-coinheight-5]) color("LightCyan") 
 //  translate([-coinsep,tokenheight-coinheight,0]) rotate([-90,0,0]) color("Pink")
 //  token_cover();
@@ -908,15 +915,15 @@ module overall_cover_test () {
 //color("blue") translate([0,0,20]) lidtower(1);
 
 //
-//translate([0,0,2+coinheight]) setup_caddy_contents();
+//translate([0,0,2+coinheight]) upper_tray_contents();
 //
 //translate([0,-10-fulllength, 2+coinheight]) {
 //  union () { 
-//    setup_caddy();
+//    upper_tray();
 //  }
 //}
 
-//setup_caddy();
+//upper_tray();
     
 
 
@@ -928,11 +935,11 @@ module setup_test_pieces () {
 
     test_thickness = 5;
 
-    setup_caddy();
+    upper_tray();
 
-    color("blue") translate([0,120,test_thickness-caddyheight]) above(caddyheight-test_thickness) setup_caddy();
+    color("blue") translate([0,120,test_thickness-caddyheight]) above(caddyheight-test_thickness) upper_tray();
 
-    color("red") translate([0,-120,0]) below(floor+test_thickness) setup_caddy();
+    color("red") translate([0,-120,0]) below(floor+test_thickness) upper_tray();
   }
 }
 
@@ -943,15 +950,15 @@ module sleeve_test() {
 
     test_thickness = 5;
 
-//    setup_caddy();
+//    upper_tray();
 
-    color("blue") translate([0,120,test_thickness-caddyheight]) above(caddyheight-test_thickness) setup_caddy();
+    color("blue") translate([0,120,test_thickness-caddyheight]) above(caddyheight-test_thickness) upper_tray();
 
   }
 }
 
 
-//setup_caddy();
+//upper_tray();
 //translate([0,fulllength,fulllength+caddyheight])
 //color("Pink") rotate([-90,0,0]) overall_cover();
 //
@@ -980,14 +987,6 @@ module sleeve_test() {
 
 //setup_test_pieces();
 
-//lidinsert();
-//translate([0,10,0]) lidinsert();
-//
-//translate([40,0,0])
-//  union () {
-//    lidinsert(0.1);
-//    translate([0,10,0]) lidinsert(0.1);
-//  }
 
 
 //color("white") token_cover_wing();
