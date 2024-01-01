@@ -872,21 +872,25 @@ module end_band() {
 
 
 
-module exploded_diagram(deltax=0,deltay=0,deltaz=0,contents=true) {
+module exploded_diagram(deltax=0,deltay=0,deltaz=0,contents=true,transparent=false) {
   colors = ["#b8b8ff", "#c8c8ff", "#dadaff", "#e8e8ff","#aaaaff"];
   dx = deltax;
   dy = deltay;
   dz = deltaz;
 
-  translate([coinsep,0,0]) color(colors[0], alpha=0.8)
+  alpha1 = transparent ? 0.8 : 1.0;
+  alpha2 = transparent ? 0.7 : 1.0;
+  alpha3 = transparent ? 0.5 : 1.0;
+
+  translate([coinsep,0,0]) color(colors[0], alpha=alpha1)
     lower_tray();
-  translate([dx,-2*dy,dz+tokenheight+floor]) color(colors[1],alpha=0.5) token_cover();
-  translate([2*dx+coinsep,-dy,2*dz+coinheight+floor]) color(colors[2], alpha=0.7)
+  translate([dx,-2*dy,dz+tokenheight+floor]) color(colors[1],alpha=alpha3) token_cover();
+  translate([2*dx+coinsep,-dy,2*dz+coinheight+floor]) color(colors[2], alpha=alpha2)
     upper_tray();
   if (contents) {
     translate([2*dx+coinsep,-dy,2*dz+coinheight+floor]) upper_tray_contents();
   }
-  translate([3*dx+coinsep,0,4*dz+coinheight+floor+caddyheight]) color(colors[3], alpha=0.5)
+  translate([3*dx+coinsep,0,4*dz+coinheight+floor+caddyheight]) color(colors[3], alpha=alpha3)
 overall_cover();
 
   translate([-min(15*dz,20),0,0])
