@@ -184,9 +184,21 @@ module alignmentpeg(index,depth=pegheight,diameter=alignmentholediameter-alignme
 }
 
 
-module lidtower(index) { // for upper caddy
+module lidtower_old(index) { // for upper caddy
+  // TODO: add flares at top and bottom
   cursecardslottranslate(index)
     translate([-blockwidth, -coinsep , 0]) 
+    difference () {
+      cube([blockwidth, cursecardthickness + 2 * coinsep+epsilon, caddyheight + epsilon]);
+      translate([blockwidth/2,cursecardthickness/2 + coinsep,-epsilon])
+        cylinder(h=caddyheight+3*epsilon,r=alignmentholediameter/2);
+  }
+}
+    
+module lidtower(index) { // for upper caddy
+  // TODO: add flares at top and bottom
+  alignmentholetranslate(index,depth=cursecardheight)
+    translate([-blockwidth/2, -(cursecardthickness/2+coinsep), 0]) 
     difference () {
       cube([blockwidth, cursecardthickness + 2 * coinsep+epsilon, caddyheight + epsilon]);
       translate([blockwidth/2,cursecardthickness/2 + coinsep,-epsilon])
@@ -605,9 +617,9 @@ module upper_tray() {
   fradius = exteriorcardsep/2; // for fillets
 
     
-  // registration towers in the back
+  // registration towers in the back 
 
-  lidtower(1);
+  lidtower(1); // TODO: lift these
   lidtower(2);
 
   // rear wings on the sides
@@ -866,11 +878,13 @@ module exploded_diagram(deltax=0,deltay=0,deltaz=0,contents=true) {
 
   translate([coinsep,0,0]) color(colors[0]) lower_tray();
   translate([dx,-2*dy,dz+tokenheight+floor]) color(colors[1]) token_cover();
-  translate([2*dx+coinsep,-dy,2*dz+coinheight+floor]) color(colors[2]) upper_tray();
+  translate([2*dx+coinsep,-dy,2*dz+coinheight+floor]) // color(colors[2])
+    upper_tray();
   if (contents) {
     translate([2*dx+coinsep,-dy,2*dz+coinheight+floor]) upper_tray_contents();
   }
-  translate([3*dx+coinsep,0,3*dz+coinheight+floor+caddyheight]) color(colors[3]) overall_cover();
+  translate([3*dx+coinsep,0,4*dz+coinheight+floor+caddyheight]) // color(colors[3])
+overall_cover();
 
   translate([-min(15*dz,20),0,0])
   translate([-1,-3/4,coinheight+floor+caddyheight+2.5]) rotate([0,90,0]) color(colors[4]) end_band();
@@ -998,4 +1012,5 @@ module sleeve_test() {
 //translate([0,-30,0]) color("LightCyan") 
 //token_cover_tongue(theta=25);
 
+//exploded_diagram(deltaz=5,deltay=5,contents=false);
 exploded_diagram(deltaz=5,deltay=5,contents=false);
