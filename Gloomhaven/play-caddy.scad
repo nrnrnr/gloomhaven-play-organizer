@@ -97,6 +97,8 @@ cursecardheight =         // Z height of front rim of curse card slot
   max(cursecardslotdepth + floor, coinheight);
 cursecardslotwidth = 77;           // X width of a curse-card slot
 
+cursecardrearextra = 15;  // amount by which back Z is higher than front
+
 fulllength = // Y direction length of the entire structure
   tokenlength + coinlength + cursecardthickness + 2 * coinsep;
 
@@ -172,37 +174,34 @@ module alignmenthole(index,depth=cursecardheight-5,width=alignmentholediameter) 
     cylinder(h=depth+epsilon,r=width/2);
 }
 
-module alignmentpeg(index,depth=pegheight,diameter=alignmentholediameter-alignmentpegclearance) {
+module alignmentblock(height) {
+  cube([blockwidth, cursecardthickness + 2 * coinsep+epsilon, height + epsilon]);
+}
+
+module alignmentpeg(index,depth=pegheight,diameter=alignmentholediameter-alignmentpegclearance,base) {
   module peg() {
-    cylinder(h=depth+epsilon,d=diameter);
-    translate([0,0,depth])
+    translate([0,0,base])
+      cylinder(h=depth+epsilon,d=diameter);
+    translate([0,0,depth+base])
       cylinder(d1=diameter,d2=pegtipdiameter,h=spikeheight+epsilon);
+    if (base > 0) {
+      translate([-blockwidth/2,-(cursecardthickness/2+coinsep),0])
+        alignmentblock(base);
+    }
   }
 
   alignmentholetranslate(1) peg();
   alignmentholetranslate(2) peg();
 }
 
-
-module lidtower_old(index) { // for upper caddy
-  // TODO: add flares at top and bottom
-  cursecardslottranslate(index)
-    translate([-blockwidth, -coinsep , 0]) 
-    difference () {
-      cube([blockwidth, cursecardthickness + 2 * coinsep+epsilon, caddyheight + epsilon]);
-      translate([blockwidth/2,cursecardthickness/2 + coinsep,-epsilon])
-        cylinder(h=caddyheight+3*epsilon,r=alignmentholediameter/2);
-  }
-}
-    
 module lidtower(index) { // for upper caddy
-  // TODO: add flares at top and bottom
-  alignmentholetranslate(index,depth=cursecardheight)
+  // TODO: add flares at top and bottom, raise bottom
+  alignmentholetranslate(index,depth=cursecardheight-cursecardrearextra)
     translate([-blockwidth/2, -(cursecardthickness/2+coinsep), 0]) 
     difference () {
-      cube([blockwidth, cursecardthickness + 2 * coinsep+epsilon, caddyheight + epsilon]);
+      cube([blockwidth, cursecardthickness + 2 * coinsep+epsilon, caddyheight + epsilon - cursecardrearextra]);
       translate([blockwidth/2,cursecardthickness/2 + coinsep,-epsilon])
-        cylinder(h=caddyheight+3*epsilon,r=alignmentholediameter/2);
+        cylinder(h=caddyheight+3*epsilon-cursecardrearextra,r=alignmentholediameter/2);
   }
 }
     
@@ -262,8 +261,11 @@ module lower_tray () {
 
   difference () {
     union () {
-      alignmentpeg(1);
-      alignmentpeg(2);
+      color("red", alpha=0.6)
+      translate([-coinsep,fulllength-coinsep, cursecardheight-epsilon])
+      cube([fullwidth,coinsep,cursecardrearextra]);
+      alignmentpeg(1,base=cursecardrearextra);
+      alignmentpeg(2,base=cursecardrearextra);
       difference () {
         union () {
           for (i=[0:1:7]) {
@@ -876,14 +878,15 @@ module exploded_diagram(deltax=0,deltay=0,deltaz=0,contents=true) {
   dy = deltay;
   dz = deltaz;
 
-  translate([coinsep,0,0]) color(colors[0]) lower_tray();
-  translate([dx,-2*dy,dz+tokenheight+floor]) color(colors[1]) token_cover();
-  translate([2*dx+coinsep,-dy,2*dz+coinheight+floor]) // color(colors[2])
+  translate([coinsep,0,0]) color(colors[0], alpha=0.8)
+    lower_tray();
+  translate([dx,-2*dy,dz+tokenheight+floor]) color(colors[1],alpha=0.5) token_cover();
+  translate([2*dx+coinsep,-dy,2*dz+coinheight+floor]) color(colors[2], alpha=0.7)
     upper_tray();
   if (contents) {
     translate([2*dx+coinsep,-dy,2*dz+coinheight+floor]) upper_tray_contents();
   }
-  translate([3*dx+coinsep,0,4*dz+coinheight+floor+caddyheight]) // color(colors[3])
+  translate([3*dx+coinsep,0,4*dz+coinheight+floor+caddyheight]) color(colors[3], alpha=0.5)
 overall_cover();
 
   translate([-min(15*dz,20),0,0])
@@ -1012,5 +1015,6 @@ module sleeve_test() {
 //translate([0,-30,0]) color("LightCyan") 
 //token_cover_tongue(theta=25);
 
+exploded_diagram(deltaz=0,deltay=0,contents=false);
+
 //exploded_diagram(deltaz=5,deltay=5,contents=false);
-exploded_diagram(deltaz=5,deltay=5,contents=false);
