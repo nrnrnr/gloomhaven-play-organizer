@@ -150,6 +150,12 @@ module anti_fillet_nw(r,h) {
 }
 
 
+module anti_fillet_ne(r,h) {
+  translate([-r,-r,0])
+  anti_fillet(r,h);
+}
+
+
 module anti_fillet_sw(r,h) {
   translate([r,r,0]) rotate([0,0,180]) anti_fillet(r,h);
 }
@@ -204,6 +210,13 @@ module left(x) {
 
 module behind(y) {
   intersection () {
+    children();
+    huge_cube_behind(y);
+  }
+}
+
+module infront(y) {
+  difference () {
     children();
     huge_cube_behind(y);
   }
