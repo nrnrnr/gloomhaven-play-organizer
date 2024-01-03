@@ -44,6 +44,23 @@ add_text       = true;    // include text labels (set to false cuts rendering ti
 smallcardheight = 68;  // AMD cards and battle goals
 smallcardwidth = 44;
 
+eventcardheight = 89.5; // confirmed
+eventcardwidth = 64;    // confirmed
+
+
+///////////////////
+///
+///  Utility functions
+
+module pirata(s,size=8) {
+  // place 2D text with default parameters
+  if (add_text) {
+    text(s, font = "Pirata One", halign = "center", size=size, valign="baseline");
+  }
+}
+
+
+
 
 ////////////////
 //
@@ -52,6 +69,9 @@ smallcardwidth = 44;
 // are regrettable.
 //
 
+////////////////////////////////////////////////////////////////
+///////////////////////   Lower Tray ///////////////////////////
+////////////////////////////////////////////////////////////////
 
 
 /////// drawers to hold condition tokens
@@ -109,19 +129,19 @@ module cursecardboxtranslate(index) {
    children();
 }
 
-module cursecardslottranslate(index,z=0,width=cursecardslotwidth) {
-   // place child at left front corner of an empty slot for curse cards, with given Z
-   cursecardboxtranslate(index)
-     translate([coinsep+index*(coinwidth-width)/2, coinsep, z])
-        children();
-}
-
 module cursecardboundingbox(index) {
    // place a cube of the right size and position to enclose a curse-card slot, 
    // plus it matches up with the other dimensions we are looking for.
    // (essentially the cube we will punch the slot out of)
    cursecardboxtranslate(index)
      cube([coinwidth+2*coinsep+epsilon, cursecardthickness+ 2 * coinsep+epsilon, cursecardheight]);
+}
+
+module cursecardslottranslate(index,z=0,width=cursecardslotwidth) {
+   // place child at left front corner of an empty slot for curse cards, with given Z
+   cursecardboxtranslate(index)
+     translate([coinsep+index*(coinwidth-width)/2, coinsep, z])
+        children();
 }
 
 module cursecardslot(index) {
@@ -148,16 +168,16 @@ module cursecardslot(index) {
 blockwidth = coinsep + (coinwidth - cursecardslotwidth) * 1.5;
 
 alignmentholediameter = 3;
-alignmentpegclearance = 0.3; // for printing pegs into parts
-pegheight = 5; // height of peg
-spikeheight = 3; // height of cone ending in peg tip
-pegtipdiameter = 0.5;
+alignmentpegclearance = 0.3; // difference in diameter betweeen the hole
+                             // and a peg designed to fit into it
 
-octagonclearance = 0.1; // for placing separately printed octagonal pegs in holes
-  // 0.3 is too loose
-  // 0.2 slides with zero resistance but is also a bit loose
-  // 0.1 slides with notable friction but not a lot of force;
-  //     one end may require sanding
+/* peg geometry:  /\    <-- height is `spikeheight`
+                  ||    <-- height is `pegheight`, diameter is hole size less clearance
+*/
+
+pegheight   = 5;      // height of cylindrical part of the peg
+spikeheight = 3;      // height of cone ending in peg tip
+spiketipdiameter = 0.5;
 
 module alignmentholetranslate(index,depth=-epsilon) {
   // place child at the center of the indexed alignment hole (1 or 2),
@@ -170,51 +190,37 @@ module alignmentholetranslate(index,depth=-epsilon) {
 }
 
 module alignmenthole(index,depth=cursecardheight-5,width=alignmentholediameter) {
+  // place the hole in indexed the alignment block
   alignmentholetranslate(index,depth)
     cylinder(h=depth+epsilon,r=width/2);
 }
 
-module alignmentblock(height) {
-  cube([blockwidth, cursecardthickness + 2 * coinsep+epsilon, height + epsilon]);
-}
-
 module alignmentpeg(index,depth=pegheight,diameter=alignmentholediameter-alignmentpegclearance,base) {
+  // place the indexed alignment peg, pointing up.  `base` is the Z height of the block
+  module alignmentblock(height) {
+    cube([blockwidth, cursecardthickness + 2 * coinsep+epsilon, height + epsilon]);
+  }
+
   module peg() {
     translate([0,0,base])
       cylinder(h=depth+epsilon,d=diameter);
     translate([0,0,depth+base])
-      cylinder(d1=diameter,d2=pegtipdiameter,h=spikeheight+epsilon);
+      cylinder(d1=diameter,d2=spiketipdiameter,h=spikeheight+epsilon);
     if (base > 0) {
       translate([-blockwidth/2,-(cursecardthickness/2+coinsep),0])
         alignmentblock(base);
     }
   }
 
-  alignmentholetranslate(1) peg();
-  alignmentholetranslate(2) peg();
+  alignmentholetranslate(index) peg();
 }
 
-module lidtower(index) { // for upper caddy
-  // TODO: add flares at top and bottom, raise bottom
-  alignmentholetranslate(index,depth=cursecardheight-cursecardrearextra)
-    translate([-blockwidth/2, -(cursecardthickness/2+coinsep), 0]) 
-    difference () {
-      cube([blockwidth, cursecardthickness + 2 * coinsep+epsilon, caddyheight + epsilon - cursecardrearextra]);
-      translate([blockwidth/2,cursecardthickness/2 + coinsep,-epsilon])
-        cylinder(h=caddyheight+3*epsilon-cursecardrearextra,r=alignmentholediameter/2);
-  }
-}
-    
-module pirata(s,size=8) {
-  if (add_text) {
-    text(s, font = "Pirata One", halign = "center", size=size, valign="baseline");
-  }
-}
+default_r = 10; // amount to drop text of card labels?
+default_label_thickness = 0.4;  // for incised/recessed labels
 
-default_r = 10;
-
-module card_label(index, s) {
-  thickness = 0.4;
+module curse_card_label(index, s) {
+  // place a label on the front of a curse-card slot (usually subtracted)
+  thickness = default_label_thickness;
   translate([coinsep + index * (coinsep + coinwidth) + coinwidth/2,
              tokenlength+coinlength+thickness-epsilon,
              coinheight-default_r+3])
@@ -228,37 +234,39 @@ module card_label(index, s) {
 }
 
 module token_label(index, s) {
-  thickness = 0.4;
+  // place a label on the front of a token drawer
+  thickness = default_label_thickness;
   translate([index * (tokensep + tokenwidth) + tokenwidth/2,
              thickness-epsilon,
              tokenheight/2+1])
   rotate([90,0,0])
-  linear_extrude(thickness)
+  linear_extrude(thickness) 
   text(s, font = "gloomhaven conditions", halign = "center", size=9, valign="center");
+    // N.B. different font!
+    // GH conditions: D disarm
+    //                I immobilize
+    //                M muddle
+    //                P poison
+    //                S strengthen
+    //                U stun
+    //                V invisible
+    //                W wound
+    //                Z regenerate
 }
 
-module caddy_label(s, size=10) {
+module negative_label(s, size=10) {
+  // place 3D label at origin at default thickness plus a lot
+  // (meant to be subtracted from a solid)
   if (add_text) {
-    thickness = 0.4+epsilon;
-    linear_extrude(thickness+10)
-      text(s, font = "Pirata One", halign = "center", size=size, valign="baseline");
+    thickness = default_label_thickness+epsilon;
+    linear_extrude(thickness+1)
+      pirata(s, size=size);
   }
 }
 
 
-// GH conditions: D disarm
-//                I immobilize
-//                M muddle
-//                P poison
-//                S strengthen
-//                U stun
-//                V invisible
-//                W wound
-//                Z regenerate
-
-
 module lower_tray () {
-
+  // place the lower tray (at [-coinsep,0,-floor]?)
   difference () {
     union () {
       color("red", alpha=0.6)
@@ -285,9 +293,9 @@ module lower_tray () {
     }
     // alignmenthole(1); // prototype had holes; final version has pegs
     // alignmenthole(2);
-    card_label(0, "Player Curse");
-    card_label(1, "Bless");
-    card_label(2, "Monster Curse");
+    curse_card_label(0, "Player Curse");
+    curse_card_label(1, "Bless");
+    curse_card_label(2, "Monster Curse");
     if (add_text) {
       token_label(0, "P");
       token_label(1, "W");
@@ -303,21 +311,11 @@ module lower_tray () {
 }
 
 
-//translate([0,-10,0]) text("P", font = "gloomhaven conditions", halign="center", size = 6, valign="baseline");
-
-//translate ([0, 10, 0]) lower_tray();
-
-// ruler
-//for (i=[0:1:35]) translate([-tokensep+i-0.05, 0, 14]) color("blue") cube([0.1, 2, 7]);
-
-//difference () { coin_drawer0); card_label(0, "Player Curse"); }
 
 ////////////////////////////////////////////////////////////////
+///////////////////////   Upper Tray ///////////////////////////
+////////////////////////////////////////////////////////////////
 
-
-
-eventcardheight = 89.5; // confirmed
-eventcardwidth = 64;    // confirmed
 
 cardleeway = 1; // extra width and height added to card spaces
 
@@ -447,8 +445,8 @@ module number_tokens(negative=false) {
   if (negative) {
     number_letter_access();
     if (add_text) {
-      translate([0,2,-0.4])
-        caddy_label("Numbers", size=4);
+      translate([0,2,-default_label_thickness])
+        negative_label("Numbers", size=4);
     }
   }
 }
@@ -458,8 +456,8 @@ module letter_tokens(negative=false) {
   if (negative) {
     number_letter_access();
     if (add_text) {
-      translate([0,2,-0.4])
-        caddy_label("Letters", size=4);
+      translate([0,2,-default_label_thickness])
+        negative_label("Letters", size=4);
     }
   }
 }
@@ -533,16 +531,17 @@ module upper_tray_contents (negative=false) {
   ev(cards4x);
 
   if (negative) {
-    translate([cards1x+eventcardwidth/2, cardsfront+0.6*eventcardheight, baseheight-0.4])
-      caddy_label("City Events");
-    translate([cards2midx+0.5, cardsfront+0.5*smallcardheight, baseheight-0.4])
-      caddy_label("Battle Goals",size=8);
-    translate([cards3midx+1.8, cardsfront+0.6*smallcardheight-2, baseheight-0.4])
-      caddy_label("Monster AMD",size=7);
-    translate([cards3midx, cardsfront+0.4*smallcardheight-0.5, baseheight-0.4])
-      caddy_label("-1 Cards",size=7);
-    translate([cards4x+eventcardwidth/2, cardsfront+0.6*eventcardheight, baseheight-0.4])
-      caddy_label("Road Events");
+    h = baseheight - default_label_thickness;
+    translate([cards1x+eventcardwidth/2, cardsfront+0.6*eventcardheight, h])
+      negative_label("City Events");
+    translate([cards2midx+0.5, cardsfront+0.5*smallcardheight, h])
+      negative_label("Battle Goals",size=8);
+    translate([cards3midx+1.8, cardsfront+0.6*smallcardheight-2, h])
+      negative_label("Monster AMD",size=7);
+    translate([cards3midx, cardsfront+default_label_thickness*smallcardheight-0.5, h])
+      negative_label("-1 Cards",size=7);
+    translate([cards4x+eventcardwidth/2, cardsfront+0.6*eventcardheight, h])
+      negative_label("Road Events");
   }
 
   smallstart = exteriorcardsep+2*(eventcardwidth+interiorcardsep+cardleeway);
@@ -614,6 +613,20 @@ module upper_tray_contents (negative=false) {
 setup_registration_leftx = cards2x-interiorcardsep/2;
 setup_registration_rightx = cards4x+wrapwidthevents/2;
 setup_registration_y = exteriorcardsep/2;
+
+
+module lidtower(index) { // for upper caddy
+  // TODO: add flares at top and bottom
+  alignmentholetranslate(index,depth=cursecardheight-cursecardrearextra)
+    translate([-blockwidth/2, -(cursecardthickness/2+coinsep), 0]) 
+    difference () {
+      cube([blockwidth, cursecardthickness + 2 * coinsep+epsilon, caddyheight + epsilon - cursecardrearextra]);
+      translate([blockwidth/2,cursecardthickness/2 + coinsep,-epsilon])
+        cylinder(h=caddyheight+3*epsilon-cursecardrearextra,r=alignmentholediameter/2);
+  }
+}
+    
+
 
 module upper_tray() {
   fradius = exteriorcardsep/2; // for fillets
@@ -702,11 +715,11 @@ module card_separator(width=eventcardwidth,
           cube([2*radius,2*radius,caddyheight]);
 
         if (showtext) {
-          translate([0,height/2,new_separator_thickness-0.4])
-          linear_extrude(0.4+2*epsilon)
+          translate([0,height/2,new_separator_thickness-default_label_thickness])
+          linear_extrude(default_label_thickness+2*epsilon)
             pirata("Active");
           translate([0,height/2,-epsilon])
-          linear_extrude(0.4+epsilon)
+          linear_extrude(default_label_thickness+epsilon)
             pirata("Inactive"); // TODO this is mirror writing!
         }
       }
@@ -873,7 +886,7 @@ module end_band() {
 
 
 module exploded_diagram(deltax=0,deltay=0,deltaz=0,contents=true,transparent=false) {
-  colors = ["#b8b8ff", "#c8c8ff", "#dadaff", "#e8e8ff","#aaaaff"];
+  colors = ["#b8b8ff", "#c8c8ff", "#dadaff", "#e8e8ff","#bbbbff"];
   dx = deltax;
   dy = deltay;
   dz = deltaz;
