@@ -41,11 +41,28 @@ add_text       = true;    // include text labels (set to false cuts rendering ti
 ///
 ///  Dimensions of Gloomhaven components
 
+
+// 2D card dimensions
+
 smallcardheight = 68;  // AMD cards and battle goals
 smallcardwidth = 44;
 
+sleevedsmallheight = 73;
+sleevedsmallwidth = 46;
+
 eventcardheight = 89.5; // confirmed
 eventcardwidth = 64;    // confirmed
+
+// thicknesses (heights) of various stacks of components
+
+numberthickness = 27; // number tokens
+letterthickness = 23; // letter tokens
+
+cityeventthickness = 27;
+roadeventthickness = 22;
+battlegoalthickness = 26.5;
+amdthickness = 12;  // monster attack-modifier deck
+minusonethickness = 10; // measured sleeved; could squeeze down to 9
 
 
 ///////////////////
@@ -319,83 +336,88 @@ module lower_tray () {
 
 cardleeway = 1; // extra width and height added to card spaces
 
-exteriorcardsep = 5;
-interiorcardsep = (fullwidth - 
-                   2 * exteriorcardsep - 
-                   2 * (eventcardwidth + smallcardwidth + 2 * cardleeway)) / 3.0;
+exteriorcardsep = 5;  // thickness of wall between event-card wells and end of tray
+interiorcardsep =     // thickness of wall between card wells
+  (fullwidth - 
+   2 * exteriorcardsep - 
+   2 * (eventcardwidth + smallcardwidth + 2 * cardleeway)) / 3.0;
 
 
 separator_thickness = 2; // separates active/inactive events;
                          // also -1 from monster AMD
 
-numberthickness = 27; 
-letterthickness = 23; // confirmed
 numberlift = 5; // room for finger underneath, could be 4
-cityeventthickness = 27;
-roadeventthickness = 22;
-battlegoalthickness = 26.5;
-amdthickness = 12;  // monster attack-modifier deck
-minusonethickness = 10; // could squeeze down to 9
-ceiling = 5; // space between highest stack and top
-caddytopclearance = ceiling; // space between top of stack and rim; could be 4
+ceiling = 5; // space between highest stack and top of tray, could be smaller
+uppertrayclearance = ceiling; // space between top of stack and rim; could be 4
 
-sleevedsmallwidth = 46;
-sleevedsmallheight = 73;
+smallthickness = amdthickness + minusonethickness; // these cards are stacked
 
-smallthickness = amdthickness + minusonethickness; 
+thicknesses = // vertical space allowance for every element of upper tray
+  [ numberthickness + numberlift
+  , letterthickness + numberlift 
+  , cityeventthickness + separator_thickness
+  , roadeventthickness + separator_thickness
+  , battlegoalthickness
+  , smallthickness + separator_thickness
+  ];
 
+uppertrayheight = floor + max(thicknesses) + uppertrayclearance;
 
-
-thicknesses = [ numberthickness + numberlift
-              , letterthickness + numberlift 
-              , cityeventthickness + separator_thickness
-              , roadeventthickness + separator_thickness
-              , battlegoalthickness
-              , smallthickness + separator_thickness
-              ];
+echo(uppertrayheight = uppertrayheight,
+     totalheight = uppertrayheight + coinheight,
+     caddy_above_token = uppertrayheight + coinheight - tokenheight);
 
 
+module event_separator(x_shift=cardleeway) {
+  // at origin, place a block to separate active and inactive events
+  leeway = 3;
+  color("white") cube_filleted_columns(eventcardwidth,eventcardheight-leeway,separator_thickness,1.5);
+  wrapwidth = 14; // must be larger than for front card cout
+  color("white")
+  translate([wrapwidth,-exteriorcardsep,0])
+    cube_filleted_columns(eventcardwidth - 2 * wrapwidth,
+                          leeway+ exteriorcardsep + epsilon + 1.5,
+                          separator_thickness,
+                          1.5);
+}
+  
+module event_separator_gap(x_shift=cardleeway) {
+  // at origin, place the space between active and inactive event cards
+  color("white") translate([-10,-10,0])
+    cube_filleted_columns(eventcardwidth+20,eventcardheight+20,separator_thickness,1.5);
+}
 
-caddyheight = floor + max(thicknesses) + caddytopclearance;
 
-echo(caddyheight = caddyheight, totalheight = caddyheight + coinheight, caddy_above_token = caddyheight + coinheight - tokenheight);
+module event_cards(thickness=26, negated=false) {
+  // at origin, place either a representation of the event cards or, 
+  // if negated, the space that needs to be left for them
+  //
+  // XXX unclear why 26 and not e.g., max(cityeventthickness,roadeventthickness)
+
+  if (negated) {
+    cube_filleted_columns(eventcardwidth+cardleeway,eventcardheight+cardleeway,thickness+50,1.5);
+  } else {
+    union () {
+      difference() {
+        color("red")
+        cube_filleted_columns(eventcardwidth+cardleeway,
+                              eventcardheight+cardleeway,
+                              thickness+separator_thickness,
+                              1.5);
+        translate([0,2,thickness/2]) event_separator_gap();
+      }
+      color("white") translate([0,2,thickness/2]) event_separator();
+    }
+  }
+}
 
 module thumbcutout () { // origin at center?
+  // at origin, place a U-shaped solid than can be subracted to make a cutout
   union () {
     translate([-14,-14,-50]) cube([28,28+epsilon,100]);
     translate([0,14,0]) cylinder(r=14,h=100,center=true);
   }
 }
-
-
-
-module event_cards(thickness=26) {
-  union () {
-    difference() {
-      color("red")
-      cube_filleted_columns(eventcardwidth+cardleeway,eventcardheight+cardleeway,thickness+separator_thickness,1.5);
-      translate([0,2,thickness/2]) event_separator_gap();
-    }
-    color("white") translate([0,2,thickness/2]) event_separator();
-  }
-}
-
-module event_cards_negated(thickness=26) {
-   cube_filleted_columns(eventcardwidth+cardleeway,eventcardheight+cardleeway,thickness+50,1.5);
-}
-
-module event_separator_gap(x_shift=cardleeway) {
-  color("white") translate([-10,-10,0]) cube_filleted_columns(eventcardwidth+20,eventcardheight+20,separator_thickness,1.5);
-}
-
-module event_separator(x_shift=cardleeway) {
-  leeway = 3;
-  color("white") cube_filleted_columns(eventcardwidth,eventcardheight-leeway,separator_thickness,1.5);
-  wrapwidth = 14; // must be larger than for front card cout
-  color("white")
-  translate([wrapwidth,-exteriorcardsep,0]) cube_filleted_columns(eventcardwidth - 2 * wrapwidth, leeway+ exteriorcardsep + epsilon + 1.5, separator_thickness, 1.5);
-}
-  
 
 module frontcardcutout(width) {
   union () {
@@ -405,18 +427,12 @@ module frontcardcutout(width) {
 }
   
 
-module small_cards(thickness=27,sleeved=false) { 
+module small_cards(thickness=27,sleeved=false,negated=false) { 
+  height = negated ? thickness + 50 : thickness;
   if (sleeved) {
-    cube([sleevedsmallwidth+cardleeway,sleevedsmallheight+cardleeway,thickness]);
+    cube([sleevedsmallwidth+cardleeway,sleevedsmallheight+cardleeway,height]);
   } else {
-    cube_filleted_columns(smallcardwidth+cardleeway,smallcardheight+cardleeway,thickness,1.5);
-  }
-}
-module small_cards_negated(thickness=27,sleeved=false) { 
-  if (sleeved) {
-    cube([sleevedsmallwidth+cardleeway,sleevedsmallheight+cardleeway,thickness+50]);
-  } else {
-    cube_filleted_columns(smallcardwidth+cardleeway,smallcardheight+cardleeway,thickness+50,1.5);
+    cube_filleted_columns(smallcardwidth+cardleeway,smallcardheight+cardleeway,height,1.5);
   }
 }
 
@@ -440,7 +456,7 @@ module number_letter_access(diameter=2*numberradius) {
 }
 
 module number_tokens(negative=false) {
-  h = negative ? 100 : numberthickness + caddytopclearance;
+  h = negative ? 100 : numberthickness + uppertrayclearance;
   cylinder(r=numberradius,h=h);
   if (negative) {
     number_letter_access();
@@ -451,7 +467,7 @@ module number_tokens(negative=false) {
   }
 }
 module letter_tokens(negative=false) {
-  h = negative ? 100 : letterthickness + caddytopclearance;
+  h = negative ? 100 : letterthickness + uppertrayclearance;
   cylinder(r=10.5+token_radius_slop,h=h);
   if (negative) {
     number_letter_access();
@@ -517,14 +533,12 @@ module upper_tray_contents (negative=false) {
 
 
   module ev(x) {
+    translate([x,cardsfront, baseheight]) event_cards(negated=negative);
     if (negative) {
       wrapwidth = wrapwidthevents;
-      translate([x,cardsfront, baseheight]) event_cards_negated();
       translate([x+wrapwidth,-epsilon, baseheight])
         frontcardcutout(eventcardwidth-2*wrapwidth);
-    } else {
-      translate([x,cardsfront, baseheight]) event_cards();
-    }
+    } 
   }
   // city and road events
   ev(cards1x);
@@ -547,22 +561,20 @@ module upper_tray_contents (negative=false) {
   smallstart = exteriorcardsep+2*(eventcardwidth+interiorcardsep+cardleeway);
 
 
+  color("red") translate([cards2x, cardsfront,baseheight])
+    small_cards(negated=negative); // battle goals
+
   if (negative) {
     wrapwidth = wrapwidthsmall;
     translate([cards2x+wrapwidth,-epsilon,baseheight])
       frontcardcutout(smallcardwidth-2*wrapwidth);
-    color("red") translate([cards2x, cardsfront,baseheight])
-      small_cards_negated(); // battle goals
-  } else {
-    color("red") translate([cards2x, cardsfront,baseheight])
-      small_cards(); // battle goals
   }
 
 
   tokenshift = 0;
 
-  numberz = caddyheight - (caddytopclearance + numberthickness);
-  letterz = caddyheight - (caddytopclearance + letterthickness);
+  numberz = uppertrayheight - (uppertrayclearance + numberthickness);
+  letterz = uppertrayheight - (uppertrayclearance + letterthickness);
 
   color("yellow") translate([cards2midx-tokenshift,numbery+11, numberz])
     number_tokens(negative);
@@ -587,7 +599,7 @@ module upper_tray_contents (negative=false) {
         translate([cards3x+wrapwidth,-epsilon,baseheight])
           frontcardcutout(smallcardwidth-2*wrapwidth);
         color("red") translate([cards3x, sleevedcardsfront,baseheight])
-          small_cards_negated(sleeved = true);  // -1 plus monster AMD
+          small_cards(sleeved = true,negated=true);  // -1 plus monster AMD
       }
       cube([0,0,0]);
     }
@@ -620,16 +632,17 @@ module lidtower(index) { // for upper caddy
   alignmentholetranslate(index,depth=cursecardheight-cursecardrearextra)
     translate([-blockwidth/2, -(cursecardthickness/2+coinsep), 0]) 
     difference () {
-      cube([blockwidth, cursecardthickness + 2 * coinsep+epsilon, caddyheight + epsilon - cursecardrearextra]);
+      cube([blockwidth, cursecardthickness + 2 * coinsep+epsilon, uppertrayheight + epsilon - cursecardrearextra]);
       translate([blockwidth/2,cursecardthickness/2 + coinsep,-epsilon])
-        cylinder(h=caddyheight+3*epsilon-cursecardrearextra,r=alignmentholediameter/2);
+        cylinder(h=uppertrayheight+3*epsilon-cursecardrearextra,r=alignmentholediameter/2);
   }
 }
     
 
 
 module upper_tray() {
-  fradius = exteriorcardsep/2; // for fillets
+  fradius = exteriorcardsep/2; // for normal fillets
+  smallfradius = 0.6*fradius; // for small fillets
 
     
   // registration towers in the back 
@@ -640,44 +653,46 @@ module upper_tray() {
   // rear wings on the sides
 
   translate([-coinsep,tokenlength+coinlength,0])
-    cube([coinsep, cursecardthickness+2*coinsep, caddyheight]);
+    cube([coinsep, cursecardthickness+2*coinsep, uppertrayheight]);
   translate([fullwidth-2*coinsep,tokenlength+coinlength,0])
-    cube([coinsep, cursecardthickness+2*coinsep, caddyheight]);
+    cube([coinsep, cursecardthickness+2*coinsep, uppertrayheight]);
 
 
   // main item
 
   difference () {
-    translate([-coinsep,0,0]) cube([fullwidth, tokenlength+coinlength+coinsep/3+epsilon, caddyheight]);
+    translate([-coinsep,0,0]) cube([fullwidth, tokenlength+coinlength+coinsep/3+epsilon, uppertrayheight]);
     upper_tray_contents(negative=true);
     translate ([wrapwidthevents+exteriorcardsep-fradius-coinsep,
                 exteriorcardsep-fradius,
                 floor])
     union () {
-      anti_fillet(r=fradius,h=caddyheight+epsilon);
+      anti_fillet(r=fradius,h=uppertrayheight+epsilon);
 
       translate([eventcardwidth+interiorcardsep+wrapwidthsmall-wrapwidthevents,0,0])
       union () {
-        anti_fillet(r=fradius,h=caddyheight+epsilon);
+        anti_fillet(r=fradius,h=uppertrayheight+epsilon);
         translate([smallcardwidth+interiorcardsep,0,0])
         union () {
-          anti_fillet(r=fradius,h=caddyheight+epsilon);
+          translate([fradius-smallfradius,sleevedcardsfront-cardsfront+fradius-smallfradius,0])
+          anti_fillet(r=smallfradius,h=uppertrayheight+epsilon);
           translate([smallcardwidth+interiorcardsep+wrapwidthevents-wrapwidthsmall,0,0])
-            anti_fillet(r=fradius,h=caddyheight+epsilon);
+            anti_fillet(r=fradius,h=uppertrayheight+epsilon);
         }
       }
     }
-    translate([cards1x+eventcardwidth+fradius-wrapwidthevents,cardsfront-fradius,floor])
+    translate([cards1x+eventcardwidth-wrapwidthevents,cardsfront,floor])
     union () {
-      anti_fillet_nw(r=fradius,h=caddyheight+epsilon);
+      anti_fillet_nw(r=fradius,h=uppertrayheight+epsilon);
       translate([smallcardwidth+interiorcardsep+wrapwidthevents-wrapwidthsmall,0,0])
       union () {
-        anti_fillet_nw(r=fradius,h=caddyheight+epsilon);
+        anti_fillet_nw(r=fradius,h=uppertrayheight+epsilon);
         translate([smallcardwidth+interiorcardsep,0,0])
         union () {
-          anti_fillet_nw(r=fradius,h=caddyheight+epsilon);
+          translate([0,sleevedcardsfront-cardsfront,0])
+          anti_fillet_nw(r=smallfradius,h=uppertrayheight+epsilon);
           translate([eventcardwidth+interiorcardsep+wrapwidthsmall-wrapwidthevents,0,0])
-            anti_fillet_nw(r=fradius,h=caddyheight+epsilon);
+            anti_fillet_nw(r=fradius,h=uppertrayheight+epsilon);
         }
       }
     }
@@ -704,15 +719,15 @@ module card_separator(width=eventcardwidth,
     radius = separator_radius;
     translate([(width-separator_leeway)/2-radius,-front-separator_leeway,-epsilon])
       union () {
-        anti_fillet_se(r=smallfillet,h=caddyheight);
-        translate([2*radius,0,0]) anti_fillet_sw(r=smallfillet,h=caddyheight);
+        anti_fillet_se(r=smallfillet,h=uppertrayheight);
+        translate([2*radius,0,0]) anti_fillet_sw(r=smallfillet,h=uppertrayheight);
     }
 
     translate([(width-separator_leeway)/2,2,-epsilon])
       union () {
-        cylinder(r=radius,h=caddyheight);
+        cylinder(r=radius,h=uppertrayheight);
         translate([-radius,-2*radius,0])
-          cube([2*radius,2*radius,caddyheight]);
+          cube([2*radius,2*radius,uppertrayheight]);
 
         if (showtext) {
           translate([0,height/2,new_separator_thickness-default_label_thickness])
@@ -903,11 +918,11 @@ module exploded_diagram(deltax=0,deltay=0,deltaz=0,contents=true,transparent=fal
   if (contents) {
     translate([2*dx+coinsep,-dy,2*dz+coinheight+floor]) upper_tray_contents();
   }
-  translate([3*dx+coinsep,0,4*dz+coinheight+floor+caddyheight]) color(colors[3], alpha=alpha3)
+  translate([3*dx+coinsep,0,4*dz+coinheight+floor+uppertrayheight]) color(colors[3], alpha=alpha3)
 overall_cover();
 
   translate([-min(15*dz,20),0,0])
-  translate([-1,-3/4,coinheight+floor+caddyheight+2.5]) rotate([0,90,0]) color(colors[4]) end_band();
+  translate([-1,-3/4,coinheight+floor+uppertrayheight+2.5]) rotate([0,90,0]) color(colors[4]) end_band();
 
   translate([min(15*dz,20),0,0])
   translate([fullwidth+1,-3/4,-3/4]) rotate([0,-90,0]) color(colors[4]) end_band();
@@ -971,7 +986,7 @@ module setup_test_pieces () {
 
     upper_tray();
 
-    color("blue") translate([0,120,test_thickness-caddyheight]) above(caddyheight-test_thickness) upper_tray();
+    color("blue") translate([0,120,test_thickness-uppertrayheight]) above(uppertrayheight-test_thickness) upper_tray();
 
     color("red") translate([0,-120,0]) below(floor+test_thickness) upper_tray();
   }
@@ -986,14 +1001,14 @@ module sleeve_test() {
 
 //    upper_tray();
 
-    color("blue") translate([0,120,test_thickness-caddyheight]) above(caddyheight-test_thickness) upper_tray();
+    color("blue") translate([0,120,test_thickness-uppertrayheight]) above(uppertrayheight-test_thickness) upper_tray();
 
   }
 }
 
 
 //upper_tray();
-//translate([0,fulllength,fulllength+caddyheight])
+//translate([0,fulllength,fulllength+uppertrayheight])
 //color("Pink") rotate([-90,0,0]) overall_cover();
 //
 //
@@ -1032,6 +1047,9 @@ module sleeve_test() {
 //translate([0,-30,0]) color("LightCyan") 
 //token_cover_tongue(theta=25);
 
-exploded_diagram(deltaz=0,deltay=0,contents=false);
+//exploded_diagram(deltaz=0,deltay=0,contents=false);
 
 //exploded_diagram(deltaz=5,deltay=5,contents=false);
+
+upper_tray();
+
