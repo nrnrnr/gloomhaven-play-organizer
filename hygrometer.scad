@@ -2,7 +2,28 @@
 $fa = 2;    // minimum angle (fine resolution)
 $fs = 0.4;  // minimum size (fine resolution)
 
-use <Gloomhaven/drawer.scad>  // reusable primitives
+module cube_filleted_columns(x,y,z,r) {
+  if (is_list(x) && is_num(y)) {   // also accepts cube_filleted_columns (vector, r)
+    cube_filleted_columns(x.x, x.y, x.z, y);
+  } else {
+    union () {
+      translate ([r,  r,  0]) cylinder(h=z, r=r);
+      translate ([x-r,r,  0]) cylinder(h=z, r=r);
+      translate ([r,  y-r,0]) cylinder(h=z, r=r);
+      translate ([x-r,y-r,0]) cylinder(h=z, r=r);
+
+      translate([r,     0,  0])  cube([x-2*r, 2*r, z]);
+      translate([r, y-2*r,  0])  cube([x-2*r, 2*r, z]);
+
+      translate([0,     r,  0])  cube([2*r, y-2*r, z]);
+      translate([x-2*r, r,  0])  cube([2*r, y-2*r, z]);
+
+      translate([r, r, 0]) cube([x-2*r,y-2*r,z]);
+    }
+  }
+}
+
+
 
 epsilon = 0.001;   // help avoid issues with floating-point rounding error
 eps_vector = [epsilon, epsilon, epsilon];
