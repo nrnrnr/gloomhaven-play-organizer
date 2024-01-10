@@ -42,7 +42,7 @@ magnet_sep_layers = 1;   // how many layers separate the magnet from the front o
 magnet_separator = magnet_sep_layers * layer_height; 
                          // thickness of panel separating magnet from front
 
-module magnet_wing(glue, thickness = block.z) {
+module old_magnet_wing(glue, thickness = block.z) { // sticks out too far in X
    // origin at center of magnet pocket
   difference () {
     union () {
@@ -63,12 +63,35 @@ module magnet_wing(glue, thickness = block.z) {
   }
 }
 
+module magnet_wing(glue, thickness = block.z) {
+   // origin at center of magnet pocket
+  wrap = 3; // additional radius around magnet
+  wing_y = 2 * (magnet_diameter + wrap); // cube dimension
+  difference () {
+    union () {
+      cylinder(r = magnet_diameter/2 + wrap, h = thickness);
+      translate([-magnet_diameter/2, -wing_y/2, 0])
+        cube([magnet_diameter/2, wing_y, thickness]);
+    }
+    translate([0, -magnet_diameter-wrap, -epsilon])
+      cylinder(d = magnet_diameter, h = thickness + 2*epsilon);
+    translate([0,  magnet_diameter+wrap, -epsilon])
+      cylinder(d = magnet_diameter, h = thickness + 2*epsilon);
+    if (glue) {
+      error("glue not implemented here");
+    } else {
+      translate([0,0,-thickness-magnet_separator])
+        cylinder(d = magnet_diameter, h = 2 * thickness);
+    }      
+  }
+}
+
 module holder (glue=false) {
   difference () {
     union () {
-      cube(block);
-      translate([block.x + magnet_diameter, block.y/2, 0]) magnet_wing(glue=glue);
-      translate([        - magnet_diameter, block.y/2, 0])
+      cube_filleted_columns(block, 3);
+      translate([block.x + magnet_diameter/2, block.y/2, 0]) magnet_wing(glue=glue);
+      translate([        - magnet_diameter/2, block.y/2, 0])
         rotate([0,0,180]) magnet_wing(glue=glue);
     }
     translate([frame_wrap, frame_wrap, grip.z])
