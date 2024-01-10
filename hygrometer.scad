@@ -7,6 +7,8 @@ use <Gloomhaven/drawer.scad>  // reusable primitives
 epsilon = 0.001;   // help avoid issues with floating-point rounding error
 eps_vector = [epsilon, epsilon, epsilon];
 
+layer_height = 0.2;
+
 frame = [49.5, 30.3, 2.0]; // frame around the front with 1mm clearance
 grip  = [45.2, 26.2, 4.0];    // grips the hygrometer tightly
 frame_wrap = 4; // distance from edge of frame to edge of block
@@ -15,7 +17,9 @@ block = [frame.x + 2 * frame_wrap, frame.y + 2 * frame_wrap, frame.z + grip.z];
 
 magnet_diameter = 8.5;  // diameter for pocket, not magnet itself
 magnet_thickness = 2.0;
-magnet_separator = 0.40; // thickness of panel separating magnet from front
+magnet_sep_layers = 1;   // how many layers separate the magnet from the front of the panel?
+magnet_separator = magnet_sep_layers * layer_height; 
+                         // thickness of panel separating magnet from front
 
 module magnet_wing(glue, thickness = block.z) {
    // origin at center of magnet pocket
