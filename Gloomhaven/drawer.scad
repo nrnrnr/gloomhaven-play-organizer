@@ -178,7 +178,6 @@ module anti_chamfer_sw(w,h,lo_corner=false, hi_corner=false) {
   bot_extension = lo_corner ? w : 0;
   negative_thickness = w * sqrt(2) + epsilon;
   total_h = h + top_extension + bot_extension;
-  echo(top_extension = top_extension);
   difference () {
     render () intersection () {
       translate([0,0,-bot_extension])
