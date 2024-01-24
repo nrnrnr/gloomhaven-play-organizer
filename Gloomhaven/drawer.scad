@@ -162,9 +162,77 @@ module anti_fillet_sw(r,h) {
 
 module anti_fillet_se(r,h) {
   translate([-r,r,0])
-  rotate([0,0,-90]) anti_fillet(r,h);
+  rotate([0,0,-90]) anti_fillet(h,r);
 }
 
+module rotate_at(rotation, translation) {
+  translate(translation)
+    rotate(rotation)
+    translate(-translation)
+    children();
+}
+
+
+module anti_chamfer_sw(w,h,lo_corner=false, hi_corner=false) {
+  top_extension = hi_corner ? w : 0;
+  bot_extension = lo_corner ? w : 0;
+  negative_thickness = w * sqrt(2) + epsilon;
+  total_h = h + top_extension + bot_extension;
+  echo(top_extension = top_extension);
+  difference () {
+    render () intersection () {
+      translate([0,0,-bot_extension])
+        cube([w,w,total_h]);
+      rotate_at([0,0,45],[w,0,0])
+        translate([w-negative_thickness,0,-epsilon-bot_extension])
+        cube([negative_thickness,negative_thickness,total_h]);
+    }
+    nt = negative_thickness + 2*epsilon;
+    if (hi_corner) {
+      translate([-epsilon,0,h])
+        rotate([45,0,0])
+        cube([nt,nt,nt]);
+    }
+    if (lo_corner) {
+      translate([-epsilon,0,0])
+        rotate([45+180,0,0])
+        cube([nt,nt,nt]);
+    }
+  }
+}
+
+module anti_chamfer_south(w,h,lo_corner=false, hi_corner=false) {
+  // south side of a solid, north side of a hole
+  rotate([0,90,0]) anti_chamfer_sw(w,h,lo_corner=lo_corner, hi_corner=hi_corner);
+}
+
+module anti_chamfer_east(w,h,lo_corner=false, hi_corner=false) {
+  rotate([0,0,90]) anti_chamfer_south(w,h,lo_corner=lo_corner, hi_corner=hi_corner);
+}
+module anti_chamfer_north(w,h,lo_corner=false, hi_corner=false) {
+  translate([h,0,0]) rotate([0,0,180]) anti_chamfer_south(w,h,lo_corner=lo_corner, hi_corner=hi_corner);
+}
+module anti_chamfer_west(w,h,lo_corner=false, hi_corner=false) {
+  rotate([0,0,90]) anti_chamfer_north(w,h,lo_corner=lo_corner, hi_corner=hi_corner);
+}
+
+
+module chamfered_well(size,depth) {
+  cube(size);
+  translate([-epsilon,epsilon,size.z])
+    anti_chamfer_north(w=depth+epsilon,h=size.x+2*epsilon,hi_corner = true, lo_corner = true);
+  translate([epsilon,-epsilon,size.z])
+    anti_chamfer_east(w=depth+epsilon,h=size.y+2*epsilon,hi_corner = true, lo_corner = true);
+  translate([-epsilon,size.y-epsilon,size.z])
+    anti_chamfer_south(w=depth+epsilon,h=size.x+2*epsilon,hi_corner = true, lo_corner = true);
+  translate([size.x-epsilon,-epsilon,size.z])
+    anti_chamfer_west(w=depth+epsilon,h=size.y+2*epsilon,hi_corner = true, lo_corner = true);
+}
+
+
+
+
+////////////////////////////////////////////////////////////////
 
 module huge_cube_above(z) {
  translate([-huge,-huge,z]) cube([2*huge,2*huge,huge]);
@@ -282,3 +350,9 @@ module curved_band(straight,curved,height,thickness,indent) {
 //
 //           
 //
+
+
+module lift(z) {
+  translate([0,0,z])
+    children();
+}
