@@ -36,12 +36,16 @@ cardsdepth = 25;
 cardsceiling = sleevedsmallwidth + 2 - cardsdepth;
 
 shoulder_width = 4;
-shoulder_reveal = 7;
+shadow_line_width = 7;
 shoulder_overlap = 10;
+shoulder_clearance = 0.5;
+shoulder_cover_thickness = 1;
 tab_relief = 2;
 
-covers_gap = 4; // need space because single block has two covers
-cap_thickness = 2;
+// covers_gap = 4; // need space because single block has two partial caps
+covers_gap = 0; // use single full cap, print on diagonal
+cap_thickness = 4;
+full_cap_chamfer_width = 10; // 0.75 * cap_thickness;
 capheight = shoulder_overlap + cardsceiling + cap_thickness;
 echo(capheight=capheight);
 
@@ -207,7 +211,7 @@ function caplen(groups_covered) = let (
            shoulder_width + extra + (groups_covered - 1) * 2 * covers_gap;
 
 
-module cap(groups_covered) {
+module partial_cap(groups_covered) {
   extra = groups_covered == 1 ? smallsep : sep / 2 - stride / 2;
 
   difference () {
@@ -225,14 +229,56 @@ module cap(groups_covered) {
   translate([width - shoulder_width/2 + epsilon, caplen(groups_covered) - tablen, capheight - tab_relief])
     mirror([0,0,1]) mirror([1,0,0]) wedge(tablen);
 }
+
+module full_cap(chamfer_angle = 45) {
+  // XXX TODO thumb holes
+  // XXX TODO text
+  delta = shoulder_cover_thickness;
+  difference () {
+    cube([width, length, capheight]);
+    translate(delta * v110)
+      translate([0,0, capheight - shoulder_overlap])
+      cube([width - 2 * delta, length - 2 * delta, capheight]);
+    translate(shoulder_width * v110)
+      translate([0,0, cap_thickness])
+      cube([width - 2 * shoulder_width, length - 2 * shoulder_width, capheight]);
+//    translate([-epsilon, -epsilon, -epsilon])
+//      mirror([0,0,1])
+//      anti_chamfer_south(full_cap_chamfer, width + 2 * epsilon);
+//    translate([-epsilon, length + epsilon, -epsilon])
+//      mirror([0,0,1])
+//      anti_chamfer_north(full_cap_chamfer, width + epsilon * 2);
+    w = full_cap_chamfer_width;
+    translate([-epsilon, w * cos(chamfer_angle), -epsilon])
+      rotate([90 - chamfer_angle, 0, 0])
+      translate([0,-length,0])
+      cube([width + 2 * epsilon, length, capheight]);
+    translate([-epsilon, length - w * cos(chamfer_angle), -epsilon])
+      rotate([chamfer_angle - 90, 0, 0])
+      cube([width + 2 * epsilon, length, capheight]);
+  }
+  translate([shoulder_cover_thickness - epsilon, (length - wedgelen) / 2, capheight - tab_relief ])
+    mirror([0,0,1]) wedge(wedgelen);
+  translate([width - shoulder_cover_thickness + epsilon, (length - wedgelen) / 2, capheight - tab_relief])
+    mirror([0,0,1]) mirror([1,0,0]) wedge(wedgelen);
+}
+
+module tilted_full_cap(theta=45) {
+  translate([0, full_cap_chamfer_width + (capheight - full_cap_chamfer_width * cos(theta)) * cos(theta), 0])
+  rotate([90 - theta, 0, 0])
+    translate([0, -full_cap_chamfer_width * cos(theta), 0])
+    full_cap(theta);
+}
+    
   
 
 module block () { 
   difference () {
+    delta = shoulder_cover_thickness + shoulder_clearance;
     union () { // make block with shoulders
-      cube([width, length, height - (shoulder_overlap + shoulder_reveal)]);
-      translate(shoulder_width / 2 * v110)
-        cube([width - shoulder_width, length - shoulder_width, height]);
+      cube([width, length, height - (shoulder_overlap + shadow_line_width)]);
+        translate(delta * v110)
+        cube([width - 2 * delta, length - 2 * delta, height]);
     }
     for (i = [0:1:17]) {
       gap = i >= 12 ? 2 * covers_gap : (i >= 6 ? covers_gap : 0);
@@ -284,17 +330,31 @@ if (false) {
   translate([5,0,0]) green() line(7 * stride + shoulder_width - cardsthickness/2 + smallsep - sep/2);
 }
 
+module build_volume() {
+  color("Cyan", alpha=0.3) cube([250, 210, 220]);
+}
 
-translate([width+20,0,0]) cap(1);
-//translate([width+6,0,2]) cap(2);
+
+//translate([width+20,0,0]) partial_cap(1);
+//translate([width+6,0,2]) partial_cap(2);
 //
-//translate([width+20,length+1,2]) mirror([0,1,0]) cap(2);
+//translate([width+20,length+1,2]) mirror([0,1,0]) partial_cap(2);
 
-%block();
+//translate([width+20,0,0]) full_cap();
 
-translate([width, 0, height + capheight - shoulder_overlap]) rotate([0,180,0]) cap(1);
+//block();
+
+//translate([width, 0, height + capheight - shoulder_overlap]) rotate([0,180,0]) partial_cap(1);
 
 
 //%translate([-5, 0, 0]) %wedge(40);
 
-wedge(tablen/2);
+//wedge(tablen/2);
+
+//build_volume();
+//tilted_full_cap(15);
+
+full_cap(45);
+
+
+
