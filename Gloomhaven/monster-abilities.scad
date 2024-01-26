@@ -12,8 +12,8 @@ v110 = [1, 1, 0];
 
 leftcard = 12;
 
-length = 278;  // confirm space in mm
-width = 120;   // XXX TODO confirm enough room
+length = 278;  // confirmed
+width = 121;   // confirmed
 height = 27;
 
 tokenwidth = 15;
@@ -43,6 +43,7 @@ tab_relief = 2;
 covers_gap = 4; // need space because single block has two covers
 cap_thickness = 2;
 capheight = shoulder_overlap + cardsceiling + cap_thickness;
+echo(capheight=capheight);
 
 
 /*
@@ -184,9 +185,7 @@ module unit_test() {
 
 //translate([-80,-30,0]) unit_test();
 
-// TODO cap needs small hook on end to engage block center and not slide off
-
-// TODO cap needs to be enlarged by clearance!
+// XXX TODO cap needs to be enlarged by clearance!
 
 wedge_clearance = 0.5;
 wedgelen = 30;
@@ -228,7 +227,7 @@ module cap(groups_covered) {
 }
   
 
-module block () { // XXX TODO add retaining tabs
+module block () { 
   difference () {
     union () { // make block with shoulders
       cube([width, length, height - (shoulder_overlap + shoulder_reveal)]);
