@@ -175,7 +175,7 @@ module right_unit() {
   mirror([1,0,0]) left_unit();
 }
 
-unit_shift = 3;
+unit_shift = 4;
 
 module unit_test() {
   difference() {
