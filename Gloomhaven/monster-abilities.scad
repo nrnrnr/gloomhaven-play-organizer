@@ -264,13 +264,79 @@ module full_cap(chamfer_angle = 45) {
 }
 
 module tilted_full_cap(theta=45) {
-  translate([0, full_cap_chamfer_width + (capheight - full_cap_chamfer_width * cos(theta)) * cos(theta), 0])
-  rotate([90 - theta, 0, 0])
-    translate([0, -full_cap_chamfer_width * cos(theta), 0])
+  w = full_cap_chamfer_width;
+  translate([0,width,0])
+  rotate([0,0,-90])
+  translate([0, (capheight - w * sin(theta)) * sin(theta), 0])
+  translate([0,w,0])
+  rotate([theta, 0, 0])
+    translate([0, - w * cos(theta), 0])
     full_cap(theta);
 }
     
-  
+
+module supported_full_cap(theta=45) {
+  tilted_full_cap(theta);
+
+
+  fin_length = 0.55 * length;
+  fin_thickness = 2;
+  fin_gap = 0.75;
+  fin_base_length = fin_length * cos(theta);
+  fin_height = fin_length * sin(theta);
+  fin_base_width = 40;
+  w = full_cap_chamfer_width;
+
+  module anti_tooth(d, h) {
+    translate([-d/2, -d/2, -h/2])
+    cube([d, d, h]);
+  }
+
+  module unplaced_sprue() {
+    thickness = 0.5;  // from video
+    tooth = 0.25;
+    length = fin_gap / sin(theta)  + thickness / tan(theta);
+    translate([thickness / tan(theta) - length + epsilon, -thickness/2, 0])
+      difference() {
+        cube([length, thickness, thickness]);
+        translate([tooth/cos(theta),0,thickness/2])
+          rotate([0, -theta-90, 0])
+          anti_tooth(d=tooth, h = 2 * thickness / sin(theta));
+        translate([tooth/cos(theta),thickness,thickness/2])
+          rotate([0, -theta-90, 0])
+          anti_tooth(d=tooth, h = 2 * thickness / sin(theta));
+    }
+  }
+
+  sprue_vertical_spacing = 10;
+
+  module sprue(i) {
+    translate([i * sprue_vertical_spacing / tan(theta), 0, i * sprue_vertical_spacing])
+      unplaced_sprue();
+  }
+
+
+  translate([fin_gap / sin(theta),0,0])
+  translate([w + (capheight - w * sin(theta)) * sin(theta),width/2,0])
+    union () {
+      sprue(0);
+      for(i=[1:fin_height/sprue_vertical_spacing])
+        sprue(i);
+      translate([0, fin_thickness/2, 0])
+      rotate([90,0,0])
+        linear_extrude(fin_thickness)
+        polygon([[0,0], [fin_base_length, 0], [fin_base_length, fin_length * sin(theta)]]);
+      linear_extrude(fin_thickness)
+        hull() {
+        translate([10 - 2.5, 0, 0]) circle(r=2.5);
+        offset = fin_base_width / 2 + 5;
+        translate([fin_base_length - 5, offset, 0])  circle(r=5);
+        translate([fin_base_length - 5, -offset, 0]) circle(r=5);
+        }
+  }
+
+}
+
 
 module block () { 
   difference () {
@@ -331,7 +397,7 @@ if (false) {
 }
 
 module build_volume() {
-  color("Cyan", alpha=0.3) cube([250, 210, 220]);
+  color("Cyan", alpha=0.2) cube([250, 210, 220]);
 }
 
 
@@ -351,10 +417,11 @@ module build_volume() {
 
 //wedge(tablen/2);
 
-//build_volume();
 //tilted_full_cap(15);
 
-full_cap(45);
+//tilted_full_cap(45);
+supported_full_cap(45);
+build_volume();
 
 
 
