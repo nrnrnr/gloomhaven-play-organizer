@@ -4,7 +4,7 @@ $fs = 0.4;  // minimum size (fine resolution)
 
 use <drawer.scad>  // reusable primitives
 
-dry_run = false;
+dry_run = true;
 final_run = !dry_run;
 
 epsilon = 0.001;
@@ -12,11 +12,13 @@ sq2 = sqrt(2);
 northeast = [cos(45), sin(45), 0];
 v110 = [1, 1, 0];
 
+layer_height = 0.2;
+
 
 leftcard = 12;
 
-length = final_run ? 278 : 55;  // confirmed
-width = final_run ? 121 : 60;   // confirmed
+length = final_run ? 278 : 30;  // confirmed
+width = final_run ? 121 : 20;   // confirmed
 height = 27;
 
 tokenwidth = 15;
@@ -24,8 +26,8 @@ tokenthickness = 3;
 tokenlength = 55;
 tokendepth = 12;
 
-clearances_thick = [0.3, 0.4, 0.5];
-clearances_width = [0.3, 0.4, 0.5];
+clearances_thick = [0.35, 0.45, 0.55];
+clearances_width = [0.4, 0.45, 0.50];
 
 clearance_thick = 0.35;
 clearance_width = 0.4;
@@ -36,19 +38,19 @@ sleevedsmallwidth = 46;
 cardslength = sleevedsmallwidth + 4;
 cardsthickness = 4.5;
 cardsdepth = 25;
-cardsceiling = sleevedsmallwidth + 2 - cardsdepth;
+cardsceiling = dry_run ? 3 : sleevedsmallwidth + 2 - cardsdepth;
 
-shoulder_width = 4;
-shadow_line_width = 7;
-shoulder_overlap = 10;
+shoulder_width = dry_run ? 2.5 : 4;
+shadow_line_width = dry_run ? 1 : 7;
+shoulder_overlap = dry_run ? 6.5 : 10;
 shoulder_clearance = 0.5;
 shoulder_cover_thickness = 1;
 tab_relief = 2;
 
 // covers_gap = 4; // need space because single block has two partial caps
 covers_gap = 0; // use single full cap, print on diagonal
-cap_thickness = 4;
-full_cap_chamfer_width = dry_run ? 5 : 10; // 0.75 * cap_thickness;
+cap_thickness = 2;
+full_cap_chamfer_width = dry_run ? 5 : 7; // 0.75 * cap_thickness;
 capheight = shoulder_overlap + cardsceiling + cap_thickness;
 echo(capheight=capheight);
 
@@ -136,26 +138,31 @@ module chamfers_test() {
 
 //translate([0,-30,0]) chamfered_well([30,7,15], 5);
 
+tokens_test_cw = 3; // chamfer width
 
-module tokens_test() {
-  sep=6;
+module tokens_test(theta = 60) {
+  sep=7;
   depth = 15;
   surround = 3;
   height = depth + 5;
 
   module well(i) {
+    wellsize = [tokenthickness+clearances_thick[i], tokenwidth + clearances_width[i], depth];
     translate([sep + i * (tokenthickness + sep), surround, height-depth+epsilon])
-    chamfered_well([tokenthickness+clearances_thick[i],
-                    tokenwidth + clearances_width[i],
-                    depth],
-                   depth=1);
+    rotate_at([0,0,45], wellsize/2)
+    chamfered_well(wellsize, depth = 1);
   }
 
+  box = [sep + 3 * (tokenthickness + sep), tokenwidth + 2 * surround, height]; 
+  cw = tokens_test_cw; // chamfer width
+
+  translate([cw * cos(theta) - box.x, 0, 0])
   difference () {
-    cube([sep + 3 * (tokenthickness + sep), tokenwidth + 2 * surround, height]);
+    cube(box);
     well(0);
     well(1);
     well(2);
+    anti_chamfer_bottom(box, width = cw, theta = theta);
   }
 }
 
@@ -195,17 +202,29 @@ module unit_test() {
 // XXX TODO cap needs to be enlarged by clearance!
 
 wedge_clearance = 0.5;
-wedgelen = 30;
-tablen = wedgelen / 2 - shoulder_width / 4;
-tabheight = shoulder_overlap - tab_relief - 1;
+wedgelen = min(30, 0.4 * length);
+tab_guarantee = 1;  // inserts at least this much even when shifted
+tabdepth = 2 * shoulder_clearance + tab_guarantee;
+tabheight = // shoulder_overlap - tab_relief - 1;
+  2 * tabdepth * tan(dry_run ? 45 : 60);
 
-module wedge(len, blowup = 1) {
+assert(tabheight + tab_relief < shoulder_overlap);
+
+module old_wedge(len, blowup = 1) {
+  // meant to prevent slideout of partial cap
   depth = shoulder_width / 2 + unit_shift - 2;
   translate([0, len * blowup, 0])
     rotate([90,0,0])
     scale(blowup)
     linear_extrude(len)
     polygon([[0,0], [depth, depth/2], [0, tabheight]]);
+}
+
+module wedge(len) {
+  translate([0, len, tabheight/2])
+    rotate([90,0,0])
+    linear_extrude(len)
+    polygon([[0, -tabheight/2], [tabdepth, 0], [0, tabheight/2]]);
 }
 
 function caplen(groups_covered) = let (
@@ -216,6 +235,9 @@ function caplen(groups_covered) = let (
 
 module partial_cap(groups_covered) {
   extra = groups_covered == 1 ? smallsep : sep / 2 - stride / 2;
+
+  tablen = wedgelen / 2 - shoulder_width / 4;
+
 
   difference () {
     cube([width, caplen(groups_covered), capheight]);
@@ -251,14 +273,17 @@ module full_cap(chamfer_angle = 45) {
 //    translate([-epsilon, length + epsilon, -epsilon])
 //      mirror([0,0,1])
 //      anti_chamfer_north(full_cap_chamfer, width + epsilon * 2);
+
+
     w = full_cap_chamfer_width;
-    translate([-epsilon, w * cos(chamfer_angle), -epsilon])
-      rotate([90 - chamfer_angle, 0, 0])
-      translate([0,-length,0])
-      cube([width + 2 * epsilon, length, capheight]);
-    translate([-epsilon, length - w * cos(chamfer_angle), -epsilon])
-      rotate([chamfer_angle - 90, 0, 0])
-      cube([width + 2 * epsilon, length, capheight]);
+//    translate([-epsilon, w * cos(chamfer_angle), -epsilon])
+//      rotate([90 - chamfer_angle, 0, 0])
+//      translate([0,-length,0])
+//      cube([width + 2 * epsilon, length, capheight]);
+//    translate([-epsilon, length - w * cos(chamfer_angle), -epsilon])
+//      rotate([chamfer_angle - 90, 0, 0])
+//      cube([width + 2 * epsilon, length, capheight]);
+    anti_chamfer_bottom([width, length, capheight], w, 45);
   }
   translate([shoulder_cover_thickness - epsilon, (length - wedgelen) / 2, capheight - tab_relief ])
     mirror([0,0,1]) wedge(wedgelen);
@@ -279,6 +304,22 @@ module tilted_full_cap(theta=45) {
     
 
 module supported_full_cap(theta=45) {
+  tilted_full_cap(theta);
+  w = full_cap_chamfer_width;  
+  translate([w + (capheight - w * sin(theta)) * sin(theta),width/2,0])
+    support_fin(theta = 45, length = 0.60 * length, base_width = 0.70 * width);
+  // add adhesion support ("mouse ears")
+  ear_size = 15;
+  ear_distance = 5;
+  translate([(capheight - w * sin(theta)) * sin(theta),-(ear_distance+ear_size/2),0])
+    union () {
+      cube([w, width + 2 * (ear_distance + ear_size / 2), layer_height]);
+      translate([w/2, 0, 0]) cylinder(d=ear_size, h=layer_height);
+      translate([w/2, width + 2 * ear_distance + ear_size, 0]) cylinder(d=ear_size, h=layer_height);
+    }
+}
+
+module old_supported_full_cap(theta=45) {
   tilted_full_cap(theta);
 
 
@@ -364,6 +405,22 @@ module block () {
   }
 }
 
+test_fit_block_height = shoulder_overlap + shadow_line_width + 2;
+module test_fit_block () { 
+  test_height = test_fit_block_height;
+  difference () {
+    delta = shoulder_cover_thickness + shoulder_clearance;
+    union () { // make block with shoulders
+      cube([width, length, test_height - (shoulder_overlap + shadow_line_width)]);
+        translate(delta * v110)
+        cube([width - 2 * delta, length - 2 * delta, test_height]);
+    }
+    wedgeheight = test_height - shoulder_overlap + tab_relief;
+    translate([shoulder_cover_thickness + shoulder_clearance - epsilon, (length-wedgelen)/2, wedgeheight]) wedge(wedgelen);
+    translate([width - (shoulder_cover_thickness + shoulder_clearance) + epsilon, (length-wedgelen)/2, wedgeheight]) mirror([1,0,0]) wedge(wedgelen);
+  }
+}
+
 module line (y = 0) {
   translate([0, y - 0.1, height - 5])
     color ("blue") cube([1.5* width, 0.2, 7]);
@@ -418,13 +475,55 @@ module build_volume() {
 
 //%translate([-5, 0, 0]) %wedge(40);
 
-//wedge(tablen/2);
+//wedge(wedgelen);
 
 //tilted_full_cap(15);
 
 //tilted_full_cap(45);
-supported_full_cap(45);
+//supported_full_cap(45);
+
+module tilted_supported_block () {
+  cw = 7;
+translate([10,0,0])
+union () {
+  translate([-cw * tan(45) / 2, 0, -cw * tan(45) / 2])
+  translate([height * sin(45), 0, 0])
+  rotate([0,-45,0])
+  translate([0,width,0])
+  rotate([0,0,-90])
+  difference () { 
+    block();
+    anti_chamfer_bottom([width, length, height], theta = 45, width = cw);
+  }
+  translate([height * sin(45), width/2, 0])
+  support_fin(length = 0.60 * length, theta = 45, base_width = 0.70 * width);
+}
+
+}
+
+
+//tilted_supported_block();
+
+//block();
+
+test_fit_block();
+
+//full_cap();
+
+//translate([0,0,test_fit_block_height-shoulder_overlap]) translate([0,length,capheight]) rotate([180,0,0]) full_cap();
+
+translate([2 * width, 0, 0]) supported_full_cap();
+
+
 //build_volume();
+
+//rotate([0, 45, 0])
+//tokens_test(theta=45);
+//mirror([1,0,0]) support_fin(theta=45, length=30);
+
+
+//support_fin(theta=60, length=50);
+
 
 
 
