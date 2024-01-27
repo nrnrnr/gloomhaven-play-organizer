@@ -4,6 +4,9 @@ $fs = 0.4;  // minimum size (fine resolution)
 
 use <drawer.scad>  // reusable primitives
 
+dry_run = false;
+final_run = !dry_run;
+
 epsilon = 0.001;
 sq2 = sqrt(2);
 northeast = [cos(45), sin(45), 0];
@@ -12,8 +15,8 @@ v110 = [1, 1, 0];
 
 leftcard = 12;
 
-length = 278;  // confirmed
-width = 121;   // confirmed
+length = final_run ? 278 : 55;  // confirmed
+width = final_run ? 121 : 60;   // confirmed
 height = 27;
 
 tokenwidth = 15;
@@ -45,7 +48,7 @@ tab_relief = 2;
 // covers_gap = 4; // need space because single block has two partial caps
 covers_gap = 0; // use single full cap, print on diagonal
 cap_thickness = 4;
-full_cap_chamfer_width = 10; // 0.75 * cap_thickness;
+full_cap_chamfer_width = dry_run ? 5 : 10; // 0.75 * cap_thickness;
 capheight = shoulder_overlap + cardsceiling + cap_thickness;
 echo(capheight=capheight);
 
@@ -421,7 +424,7 @@ module build_volume() {
 
 //tilted_full_cap(45);
 supported_full_cap(45);
-build_volume();
+//build_volume();
 
 
 
