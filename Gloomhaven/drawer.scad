@@ -355,3 +355,85 @@ module lift(z) {
   translate([0,0,z])
     children();
 }
+
+
+////////////////////////////////////////////////////////////////
+
+module support_fin(theta, length, base_width=40, layer_height = 0.2) {
+  fin_length = length;
+  fin_thickness = 2;
+  fin_gap = 0.75;
+  base_length = fin_length * cos(theta);
+  fin_height = fin_length * sin(theta);
+  base_thickness = 1;
+  base_gap = 5; // between bottom point of fin and base
+
+  module anti_tooth(d, h) {
+    translate([-d/2, -d/2, -h/2])
+    cube([d, d, h]);
+  }
+
+  module unplaced_sprue() {
+    thickness = 0.5;  // from video
+    tooth = 0.25;
+    length = fin_gap / sin(theta)  + thickness / tan(theta);
+    translate([thickness / tan(theta) - length + epsilon, -thickness/2, 0])
+      difference() {
+        cube([length, thickness, thickness]);
+        translate([tooth/cos(theta),0,thickness/2])
+          rotate([0, -theta-90, 0])
+          anti_tooth(d=tooth, h = 2 * thickness / sin(theta));
+        translate([tooth/cos(theta),thickness,thickness/2])
+          rotate([0, -theta-90, 0])
+          anti_tooth(d=tooth, h = 2 * thickness / sin(theta));
+    }
+  }
+
+  sprue_vertical_spacing = 10;
+
+  module sprue(i) {
+    translate([i * sprue_vertical_spacing / tan(theta), 0, i * sprue_vertical_spacing])
+      unplaced_sprue();
+  }
+
+  translate([fin_gap / sin(theta),0,0])
+    union () {
+      for(i=[1:fin_height/sprue_vertical_spacing])
+        sprue(i);
+      translate([0, fin_thickness/2, 0])
+      rotate([90,0,0])
+        linear_extrude(fin_thickness)
+        polygon([[0,0], [base_length, 0], [base_length, fin_length * sin(theta)]]);
+      translate([base_gap, 0, 0])
+        cylinder(r=base_gap, h=layer_height); // mouse ear
+      linear_extrude(base_thickness)
+        hull() {
+          translate([base_gap + 2.5, 0, 0]) circle(r=2.5);
+          offset = base_width / 2 - 5;
+          translate([base_length - 5, offset, 0])  circle(r=5);
+          translate([base_length - 5, -offset, 0]) circle(r=5);
+        }
+  }
+
+}
+
+
+module anti_chamfer_bottom(dimens, width, theta) {
+  w = width;
+  translate([-epsilon, w * cos(theta), -epsilon])
+    rotate([90 - theta, 0, 0])
+    translate([0,-dimens.y,0])
+    cube([dimens.x + 2 * epsilon, dimens.y, dimens.z]);
+  translate([-epsilon, dimens.y - w * cos(theta), -epsilon])
+    rotate([theta - 90, 0, 0])
+    cube([dimens.x + 2 * epsilon, dimens.y, dimens.z]);
+
+  translate([w * cos(theta), -epsilon, -epsilon])
+    rotate([0, theta - 90, 0])
+    translate([-dimens.x,0,0])
+    cube([dimens.x, dimens.y + 2 * epsilon, dimens.z]);
+
+  translate([dimens.x - w * cos(theta), -epsilon, -epsilon])
+    rotate([0, 90 - theta, 0])
+    cube([dimens.x, dimens.y + 2 * epsilon, dimens.z]);
+}
