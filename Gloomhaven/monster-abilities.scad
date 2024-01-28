@@ -6,7 +6,7 @@ use <drawer.scad>  // reusable primitives
 
 dry_run = true;
 final_run = !dry_run;
-add_text = true;
+add_text = false;
 
 epsilon = 0.001;
 
@@ -51,7 +51,7 @@ cardsceiling = dry_run ? 3 : sleevedsmallwidth + 2 - cardsdepth;
 
 shoulder_width = dry_run ? 2.5 : 4.4; // need 4.4 so wall not too thin behind thumb indent
 shadow_line_width = dry_run ? 1 : 7;
-shoulder_clearance = 0.5;
+shoulder_clearance = 0.4;
 shoulder_cover_thickness = 1;
 tab_relief = 2; // space on shoulder cover above and below tab
 
@@ -59,9 +59,9 @@ wedge_clearance = 0.5; // horizontal space
 wedgelen = min(30, 0.4 * length);
 tab_guarantee = 0.6;  // inserts at least this much even when shifted
                       // 1.0 felt too big (too tight a fit)
-tabdepth = 2 * shoulder_clearance + tab_guarantee;
+tabdepth = shoulder_clearance + tab_guarantee;
 tabheight = // shoulder_overlap - tab_relief - 1;
-  2 * tabdepth * tan(dry_run ? 45 : 60);
+  2 * tabdepth * tan(dry_run ? 60 : 60);
 
 shoulder_overlap = min(dry_run ? 6.5 : 10, tabheight + 2 * tab_relief);
 
@@ -469,15 +469,23 @@ module test_fit_pair (label) {
 if (dry_run) {
 
   test_fit_pair("C");
-
+  // test C: tab depth is *single* shoulder clearance plus guarantee
+  //         shoulder clearance is 0.4
 }
 
 
 
+module capped_block() {
+  %block();
+  translate([0,0,height-shoulder_overlap])
+    translate([0,length,capheight])
+    rotate([180,0,0])
+    full_cap();
+}
 
+if (final_run) capped_block();
 //supported_full_cap();
 
-//translate([0,0,test_fit_block_height-shoulder_overlap]) translate([0,length,capheight]) rotate([180,0,0]) full_cap();
 
 
 
