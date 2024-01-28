@@ -312,11 +312,11 @@ module tilted_full_cap(theta=45, label) {
     
 
 module supported_full_cap(theta=45,label) {
-  tilted_full_cap(theta,label=label);
+  tilted_full_cap(theta=theta,label=label);
   w = full_cap_chamfer_width;  
   text_shift = dry_run ? 0 : 5;
   translate([w + (capheight - w * sin(theta)) * sin(theta),width/2+text_shift,0])
-    support_fin(theta = 45, length = 0.60 * length, base_width = 0.70 * width);
+    support_fin(theta = theta, length = 0.60 * length, base_width = 0.70 * width);
   // add adhesion support ("mouse ears")
   ear_size = 15;
   ear_distance = 5;
@@ -483,8 +483,8 @@ module capped_block() {
     full_cap();
 }
 
-if (final_run) capped_block();
-//supported_full_cap();
+//if (final_run) capped_block();
+if (final_run) supported_full_cap();
 
 
 
