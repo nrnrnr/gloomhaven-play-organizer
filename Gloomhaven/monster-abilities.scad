@@ -1,54 +1,73 @@
 
-$fa = 2;    // minimum angle (fine resolution)
-$fs = 0.4;  // minimum size (fine resolution)
+$fa = true ? 4 : 2;    // minimum angle (fine resolution)
+$fs = true ? 1 : 0.4;  // minimum size (fine resolution)
 
 use <drawer.scad>  // reusable primitives
 
 dry_run = true;
 final_run = !dry_run;
+add_text = true;
 
 epsilon = 0.001;
-sq2 = sqrt(2);
-northeast = [cos(45), sin(45), 0];
+
+module pirata(s,size=8,valign="baseline") {
+  // place 2D text with default parameters
+  if (add_text) {
+    text(s, font = "Pirata One", halign = "center", size=size, valign=valign);
+  }
+}
+
+///////////////////////////////////
+
+northeast = [cos(45), sin(45), 0]; // unit length
 v110 = [1, 1, 0];
 
 layer_height = 0.2;
 
 
-leftcard = 12;
 
 length = final_run ? 278 : 30;  // confirmed
 width = final_run ? 121 : 20;   // confirmed
 height = 27;
 
-tokenwidth = 15;
+tokenwidth = 15;    // slot to hold initiative tokens
 tokenthickness = 3;
 tokenlength = 55;
 tokendepth = 12;
 
-clearances_thick = [0.35, 0.45, 0.55];
+clearances_thick = [0.35, 0.45, 0.55]; // testing initiative-token slots
 clearances_width = [0.4, 0.45, 0.50];
 
-clearance_thick = 0.35;
+clearance_thick = 0.35; // final decision on initiative-token slots
 clearance_width = 0.4;
 
-sleevedsmallheight = 73;
+sleevedsmallheight = 73; // measure sleeved cards
 sleevedsmallwidth = 46;
 
 cardslength = sleevedsmallwidth + 4;
-cardsthickness = 4.5;
-cardsdepth = 25;
+cardsthickness = 4.3;
+cardsdepth = 25; // leaves room for monster name to show, at least partially
 cardsceiling = dry_run ? 3 : sleevedsmallwidth + 2 - cardsdepth;
 
-shoulder_width = dry_run ? 2.5 : 4;
+shoulder_width = dry_run ? 2.5 : 4.4; // need 4.4 so wall not too thin behind thumb indent
 shadow_line_width = dry_run ? 1 : 7;
-shoulder_overlap = dry_run ? 6.5 : 10;
 shoulder_clearance = 0.5;
 shoulder_cover_thickness = 1;
-tab_relief = 2;
+tab_relief = 2; // space on shoulder cover above and below tab
 
-// covers_gap = 4; // need space because single block has two partial caps
-covers_gap = 0; // use single full cap, print on diagonal
+wedge_clearance = 0.5; // horizontal space
+wedgelen = min(30, 0.4 * length);
+tab_guarantee = 0.6;  // inserts at least this much even when shifted
+                      // 1.0 felt too big (too tight a fit)
+tabdepth = 2 * shoulder_clearance + tab_guarantee;
+tabheight = // shoulder_overlap - tab_relief - 1;
+  2 * tabdepth * tan(dry_run ? 45 : 60);
+
+shoulder_overlap = min(dry_run ? 6.5 : 10, tabheight + 2 * tab_relief);
+
+
+// groups_gap = 4; // need space because single block has two partial caps
+groups_gap = 5; // use single full cap, print on diagonal
 cap_thickness = 2;
 full_cap_chamfer_width = dry_run ? 5 : 7; // 0.75 * cap_thickness;
 capheight = shoulder_overlap + cardsceiling + cap_thickness;
@@ -56,6 +75,7 @@ echo(capheight=capheight);
 
 
 /*
+Calculate stride for interleaved layout:
   -------
        ------
   -------
@@ -64,56 +84,23 @@ echo(capheight=capheight);
   -------
        ------
 
-length == 18.5 * stride + sep / 2 + smallsep + 2 * shoulder_width + 2 * covers_gap
+length == 18.5 * stride + sep / 2 + smallsep + 2 * shoulder_width + 2 * groups_gap
 sep = stride - cardsthickness  // distance between cards, also half distance 
                                // from cards to edge
 
- length == 18.5 * stride + stride / 2 - cardsthickness / 2 + smallsep + 2 * shoulder_width + 2 * covers_gap
+ length == 18.5 * stride + stride / 2 - cardsthickness / 2 + smallsep + 2 * shoulder_width + 2 * groups_gap
 
 
-∴ length = 19 * stride + 2 * shoulder_width - cardsthickness / 2 + smallsep + 2 * covers_gap
+∴ length = 19 * stride + 2 * shoulder_width - cardsthickness / 2 + smallsep + 2 * groups_gap
 
   
 */
 
 smallsep = 2;
-stride = (length + cardsthickness / 2 - 2 * shoulder_width - 2 * covers_gap - smallsep) / 19;
+stride = (length + cardsthickness / 2 - 2 * shoulder_width - 2 * groups_gap - smallsep) / 19;
 sep = stride - cardsthickness;
 //echo (sep=sep);
 
-
-
-//
-//\draw (-1,-1) rectangle +(131,284);
-//\draw (0,0) rectangle +(129,282);
-//\foreach \i in {0,...,17} {
-//  \draw ($(\leftcard,\i*\stride+12.5)$) rectangle +(50mm,4.5mm);
-//  \draw ($(\leftcard+54,\i*\stride+12.5)$) rectangle +(50mm,4.5mm);
-//}
-//\foreach \i in {0,...,17} {
-//  \draw ($(9,\i*\stride+6+4.25)$) node[rotate=-45,minimum width=16mm,minimum height=3.8mm,draw] { };
-//  \draw ($(9+110,\i*\stride+6+4.25)$) node[rotate=45,minimum width=16mm,minimum height=3.8mm,draw] { };
-//}
-//\foreach \i in {1,2} {
-//  \draw ($(64.5,\i*6*\stride+0.3*\stride+2)$) node [minimum height=2mm,minimum width=80mm,draw]{};
-//}
-
-//anti_chamfer_sw(5,30,hi_corner = true,lo_corner = true);
-
-
-//module undercube(r) {
-//  translate([0,0,-r.z]) cube(r);
-//}
-//
-//cube([1,1,1]);
-//
-//sq2 = sqrt(2);
-//
-//v = [1,0,0];
-//
-//translate(-v)
-//translate([1-sq2,0,0])
-//%undercube([sq2,sq2,sq2]);
 
 
 
@@ -133,10 +120,6 @@ module chamfers_test() {
     translate([10,40,15-5]) chamfered_well([30,7,5+epsilon],depth=2+epsilon);
   }
 }
-
-//chamfers_test();
-
-//translate([0,-30,0]) chamfered_well([30,7,15], 5);
 
 tokens_test_cw = 3; // chamfer width
 
@@ -195,20 +178,6 @@ module unit_test() {
   }
 }
 
-//translate([0,50,0]) tokens_test();
-
-//translate([-80,-30,0]) unit_test();
-
-// XXX TODO cap needs to be enlarged by clearance!
-
-wedge_clearance = 0.5;
-wedgelen = min(30, 0.4 * length);
-tab_guarantee = 1;  // inserts at least this much even when shifted
-tabdepth = 2 * shoulder_clearance + tab_guarantee;
-tabheight = // shoulder_overlap - tab_relief - 1;
-  2 * tabdepth * tan(dry_run ? 45 : 60);
-
-assert(tabheight + tab_relief < shoulder_overlap);
 
 module old_wedge(len, blowup = 1) {
   // meant to prevent slideout of partial cap
@@ -230,10 +199,11 @@ module wedge(len) {
 function caplen(groups_covered) = let (
   extra = groups_covered == 1 ? smallsep : sep / 2 - stride / 2
   ) (groups_covered * 6 + 0.5) * stride +
-           shoulder_width + extra + (groups_covered - 1) * 2 * covers_gap;
+           shoulder_width + extra + (groups_covered - 1) * 2 * groups_gap;
 
 
 module partial_cap(groups_covered) {
+  // OBSOLETE
   extra = groups_covered == 1 ? smallsep : sep / 2 - stride / 2;
 
   tablen = wedgelen / 2 - shoulder_width / 4;
@@ -255,9 +225,36 @@ module partial_cap(groups_covered) {
     mirror([0,0,1]) mirror([1,0,0]) wedge(tablen);
 }
 
-module full_cap(chamfer_angle = 45) {
-  // XXX TODO thumb holes
-  // XXX TODO text
+textthickness = 0.8;
+
+module place_bottom_text() {
+  translate([0,0,textthickness-epsilon])
+    rotate([0,180,0])
+    rotate([0,0,-90])
+    linear_extrude(textthickness+epsilon)
+    children();
+}
+
+  
+
+module half_sphere(r) {
+  above(0)
+  sphere(r);
+}
+
+module full_cap(chamfer_angle = 45, label) {
+
+    thumb_radius = 57;
+
+    module thumb_holes(y) {
+      translate([shoulder_width - 1 - thumb_radius,y,8])
+        half_sphere(r=thumb_radius);
+      translate([width - (shoulder_width - 1 - thumb_radius),y,8])
+        half_sphere(r=thumb_radius);
+    }
+
+
+
   delta = shoulder_cover_thickness;
   difference () {
     cube([width, length, capheight]);
@@ -267,23 +264,34 @@ module full_cap(chamfer_angle = 45) {
     translate(shoulder_width * v110)
       translate([0,0, cap_thickness])
       cube([width - 2 * shoulder_width, length - 2 * shoulder_width, capheight]);
-//    translate([-epsilon, -epsilon, -epsilon])
-//      mirror([0,0,1])
-//      anti_chamfer_south(full_cap_chamfer, width + 2 * epsilon);
-//    translate([-epsilon, length + epsilon, -epsilon])
-//      mirror([0,0,1])
-//      anti_chamfer_north(full_cap_chamfer, width + epsilon * 2);
-
-
     w = full_cap_chamfer_width;
-//    translate([-epsilon, w * cos(chamfer_angle), -epsilon])
-//      rotate([90 - chamfer_angle, 0, 0])
-//      translate([0,-length,0])
-//      cube([width + 2 * epsilon, length, capheight]);
-//    translate([-epsilon, length - w * cos(chamfer_angle), -epsilon])
-//      rotate([chamfer_angle - 90, 0, 0])
-//      cube([width + 2 * epsilon, length, capheight]);
     anti_chamfer_bottom([width, length, capheight], w, 45);
+
+    if (final_run) {
+      translate([0.2 * width,length/2,0])
+        place_bottom_text()
+        pirata("Gloomhaven",size=21,valign="center");
+
+      translate([0.6 * width,length/2,0])
+        place_bottom_text()
+        pirata("Monster Ability Cards",size=16,valign="center");
+
+      translate([0.8 * width,length/2,0])
+        place_bottom_text()
+        pirata("Monster Initiative Tokens",size=16,valign="center");
+
+      thumb_holes(1 * length/4);
+      thumb_holes(3 * length/4);
+
+    }
+
+    if (is_string(label)) {
+      translate([width/2, length/2, cap_thickness - 0.8 + epsilon])
+        linear_extrude(0.8)
+        text(label, halign="center", valign="center", size=10);
+    }
+
+
   }
   translate([shoulder_cover_thickness - epsilon, (length - wedgelen) / 2, capheight - tab_relief ])
     mirror([0,0,1]) wedge(wedgelen);
@@ -291,7 +299,7 @@ module full_cap(chamfer_angle = 45) {
     mirror([0,0,1]) mirror([1,0,0]) wedge(wedgelen);
 }
 
-module tilted_full_cap(theta=45) {
+module tilted_full_cap(theta=45, label) {
   w = full_cap_chamfer_width;
   translate([0,width,0])
   rotate([0,0,-90])
@@ -299,14 +307,15 @@ module tilted_full_cap(theta=45) {
   translate([0,w,0])
   rotate([theta, 0, 0])
     translate([0, - w * cos(theta), 0])
-    full_cap(theta);
+    full_cap(theta,label=label);
 }
     
 
-module supported_full_cap(theta=45) {
-  tilted_full_cap(theta);
+module supported_full_cap(theta=45,label) {
+  tilted_full_cap(theta,label=label);
   w = full_cap_chamfer_width;  
-  translate([w + (capheight - w * sin(theta)) * sin(theta),width/2,0])
+  text_shift = dry_run ? 0 : 5;
+  translate([w + (capheight - w * sin(theta)) * sin(theta),width/2+text_shift,0])
     support_fin(theta = 45, length = 0.60 * length, base_width = 0.70 * width);
   // add adhesion support ("mouse ears")
   ear_size = 15;
@@ -319,69 +328,6 @@ module supported_full_cap(theta=45) {
     }
 }
 
-module old_supported_full_cap(theta=45) {
-  tilted_full_cap(theta);
-
-
-  fin_length = 0.55 * length;
-  fin_thickness = 2;
-  fin_gap = 0.75;
-  fin_base_length = fin_length * cos(theta);
-  fin_height = fin_length * sin(theta);
-  fin_base_width = 40;
-  w = full_cap_chamfer_width;
-
-  module anti_tooth(d, h) {
-    translate([-d/2, -d/2, -h/2])
-    cube([d, d, h]);
-  }
-
-  module unplaced_sprue() {
-    thickness = 0.5;  // from video
-    tooth = 0.25;
-    length = fin_gap / sin(theta)  + thickness / tan(theta);
-    translate([thickness / tan(theta) - length + epsilon, -thickness/2, 0])
-      difference() {
-        cube([length, thickness, thickness]);
-        translate([tooth/cos(theta),0,thickness/2])
-          rotate([0, -theta-90, 0])
-          anti_tooth(d=tooth, h = 2 * thickness / sin(theta));
-        translate([tooth/cos(theta),thickness,thickness/2])
-          rotate([0, -theta-90, 0])
-          anti_tooth(d=tooth, h = 2 * thickness / sin(theta));
-    }
-  }
-
-  sprue_vertical_spacing = 10;
-
-  module sprue(i) {
-    translate([i * sprue_vertical_spacing / tan(theta), 0, i * sprue_vertical_spacing])
-      unplaced_sprue();
-  }
-
-
-  translate([fin_gap / sin(theta),0,0])
-  translate([w + (capheight - w * sin(theta)) * sin(theta),width/2,0])
-    union () {
-      sprue(0);
-      for(i=[1:fin_height/sprue_vertical_spacing])
-        sprue(i);
-      translate([0, fin_thickness/2, 0])
-      rotate([90,0,0])
-        linear_extrude(fin_thickness)
-        polygon([[0,0], [fin_base_length, 0], [fin_base_length, fin_length * sin(theta)]]);
-      linear_extrude(fin_thickness)
-        hull() {
-        translate([10 - 2.5, 0, 0]) circle(r=2.5);
-        offset = fin_base_width / 2 + 5;
-        translate([fin_base_length - 5, offset, 0])  circle(r=5);
-        translate([fin_base_length - 5, -offset, 0]) circle(r=5);
-        }
-  }
-
-}
-
-
 module block () { 
   difference () {
     delta = shoulder_cover_thickness + shoulder_clearance;
@@ -391,7 +337,7 @@ module block () {
         cube([width - 2 * delta, length - 2 * delta, height]);
     }
     for (i = [0:1:17]) {
-      gap = i >= 12 ? 2 * covers_gap : (i >= 6 ? covers_gap : 0);
+      gap = i >= 12 ? 2 * groups_gap : (i >= 6 ? groups_gap : 0);
       translate([unit_shift + shoulder_width,
                  shoulder_width + gap + smallsep + i * stride,
                  epsilon])
@@ -399,14 +345,19 @@ module block () {
       translate([width - unit_shift - shoulder_width, shoulder_width + gap + smallsep + i * stride + stride/2, epsilon])
         render () right_unit();
     }
+    slotlen = wedgelen + 2 * shoulder_clearance;
     wedgeheight = height - shoulder_overlap + tab_relief;
-    translate([shoulder_width/2 - epsilon, caplen(1) - wedgelen/2, wedgeheight]) wedge(wedgelen);
-    translate([width - shoulder_width/2 + epsilon, caplen(1) - wedgelen/2, wedgeheight]) mirror([1,0,0]) wedge(wedgelen);
+    translate([0     + delta - epsilon, (length-slotlen)/2, wedgeheight])
+      wedge(slotlen);
+    translate([width - delta + epsilon, (length-slotlen)/2, wedgeheight])
+      mirror([1,0,0])
+      wedge(slotlen);
   }
 }
 
 test_fit_block_height = shoulder_overlap + shadow_line_width + 2;
-module test_fit_block () { 
+module test_fit_block (label) { 
+  assert(is_string(label));
   test_height = test_fit_block_height;
   difference () {
     delta = shoulder_cover_thickness + shoulder_clearance;
@@ -415,6 +366,10 @@ module test_fit_block () {
         translate(delta * v110)
         cube([width - 2 * delta, length - 2 * delta, test_height]);
     }
+    translate([width/2, length/2, test_height - 0.6 + epsilon])
+      rotate([0,0,-90])
+      linear_extrude(0.6)
+      text(label, halign="center", valign="center", size=10);
     wedgeheight = test_height - shoulder_overlap + tab_relief;
     translate([shoulder_cover_thickness + shoulder_clearance - epsilon, (length-wedgelen)/2, wedgeheight]) wedge(wedgelen);
     translate([width - (shoulder_cover_thickness + shoulder_clearance) + epsilon, (length-wedgelen)/2, wedgeheight]) mirror([1,0,0]) wedge(wedgelen);
@@ -437,22 +392,22 @@ if (false) {
   line(shoulder_width +smallsep + 1 * stride);
   color("red") line(shoulder_width +smallsep + 1.5 * stride);
   line(shoulder_width +smallsep + 6 * stride);
-  line(shoulder_width +smallsep + 6 * stride + covers_gap);
+  line(shoulder_width +smallsep + 6 * stride + groups_gap);
   color("red") line(shoulder_width +smallsep + 6.5 * stride);
-  color("red") line(shoulder_width +smallsep + 6.5 * stride + 2 * covers_gap);
+  color("red") line(shoulder_width +smallsep + 6.5 * stride + 2 * groups_gap);
   color("red") line(shoulder_width +smallsep + 12.5 * stride);
-  color("red") line(shoulder_width +smallsep + 12.5 * stride + 2 * covers_gap);
-  line(shoulder_width +smallsep + 12 * stride + covers_gap);
-  line(shoulder_width +smallsep + 12 * stride + 2 * covers_gap);
-  line(shoulder_width +smallsep + 18 * stride + 2 * covers_gap);
-  line(shoulder_width +smallsep + 18.5 * stride + 2 * covers_gap);
-  line(shoulder_width +smallsep + 18.5 * stride + 2 * covers_gap + sep/2);
-  line(shoulder_width +smallsep + 18.5 * stride + 2 * covers_gap + sep/2 + shoulder_width);
+  color("red") line(shoulder_width +smallsep + 12.5 * stride + 2 * groups_gap);
+  line(shoulder_width +smallsep + 12 * stride + groups_gap);
+  line(shoulder_width +smallsep + 12 * stride + 2 * groups_gap);
+  line(shoulder_width +smallsep + 18 * stride + 2 * groups_gap);
+  line(shoulder_width +smallsep + 18.5 * stride + 2 * groups_gap);
+  line(shoulder_width +smallsep + 18.5 * stride + 2 * groups_gap + sep/2);
+  line(shoulder_width +smallsep + 18.5 * stride + 2 * groups_gap + sep/2 + shoulder_width);
 
   green() line(length - shoulder_width - sep/2);
   green() line(length - shoulder_width - sep/2 - cardsthickness);
-//  translate([5, 0,0]) green() line(length - shoulder_width - sep/2 - 12 * stride - 2 * covers_gap);
-  translate([10, 0,3]) color("#0ff") line(length - (shoulder_width + sep/2 + 12 * stride + 2 * covers_gap));
+//  translate([5, 0,0]) green() line(length - shoulder_width - sep/2 - 12 * stride - 2 * groups_gap);
+  translate([10, 0,3]) color("#0ff") line(length - (shoulder_width + sep/2 + 12 * stride + 2 * groups_gap));
   translate([5,0,0]) green() line(7 * stride + shoulder_width - cardsthickness/2 + smallsep - sep/2);
 }
 
@@ -506,13 +461,24 @@ union () {
 
 //block();
 
-test_fit_block();
+module test_fit_pair (label) {
+  test_fit_block(label);
+  translate([2 * width, 0, 0]) supported_full_cap(label=label);
+}
 
-//full_cap();
+if (dry_run) {
+
+  test_fit_pair("C");
+
+}
+
+
+
+
+//supported_full_cap();
 
 //translate([0,0,test_fit_block_height-shoulder_overlap]) translate([0,length,capheight]) rotate([180,0,0]) full_cap();
 
-translate([2 * width, 0, 0]) supported_full_cap();
 
 
 //build_volume();
@@ -523,6 +489,7 @@ translate([2 * width, 0, 0]) supported_full_cap();
 
 
 //support_fin(theta=60, length=50);
+
 
 
 
