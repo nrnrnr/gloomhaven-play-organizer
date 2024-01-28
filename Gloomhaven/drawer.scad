@@ -359,7 +359,18 @@ module lift(z) {
 
 ////////////////////////////////////////////////////////////////
 
+// shear such that point will translate by [p.x,p.y] as z-axis is traversed by p.z units
+module shear_along_z(p) {
+  multmatrix([
+    [1,0,p.x/p.z,0],
+    [0,1,p.y/p.z,0],
+    [0,0,1,0]
+  ]) children();
+}
+
+
 module support_fin(theta, length, base_width=40, layer_height = 0.2) {
+  // bottom tip shifted from origin by fin_gap (along X)
   fin_length = length;
   fin_thickness = 2;
   fin_gap = 0.75;
@@ -373,7 +384,7 @@ module support_fin(theta, length, base_width=40, layer_height = 0.2) {
     cube([d, d, h]);
   }
 
-  module unplaced_sprue() {
+  module old_unplaced_sprue() {
     thickness = 0.5;  // from video
     tooth = 0.25;
     length = fin_gap / sin(theta)  + thickness / tan(theta);
@@ -389,6 +400,23 @@ module support_fin(theta, length, base_width=40, layer_height = 0.2) {
     }
   }
 
+  module unplaced_sprue() {
+    // center bottom tip is at origin
+    tip_thickness = 0.5;  // from video
+    sprue_length = fin_gap / sin(theta)  + tip_thickness / tan(theta);
+    tip_length = 0.1 + tip_thickness / tan(theta);
+    base_points =  [[0,-tip_thickness/2],
+                    [tip_length,-tip_thickness/2],
+                    [sprue_length, -fin_thickness/2],
+                    [sprue_length, fin_thickness/2],
+                    [tip_length,tip_thickness/2],
+                    [0,tip_thickness/2]];
+ //   translate([tip_thickness / tan(theta) - sprue_length + epsilon, 0, 0])
+    shear_along_z([1/tan(theta),0,1])
+      linear_extrude(tip_thickness)
+      polygon(base_points);
+  }
+
   sprue_vertical_spacing = 10;
 
   module sprue(i) {
@@ -396,11 +424,12 @@ module support_fin(theta, length, base_width=40, layer_height = 0.2) {
       unplaced_sprue();
   }
 
+  sprue(0.1);
+  for(i=[1:fin_height/sprue_vertical_spacing])
+    sprue(i);
+
   translate([fin_gap / sin(theta),0,0])
     union () {
-      sprue(0.1);
-      for(i=[1:fin_height/sprue_vertical_spacing])
-        sprue(i);
       translate([0, fin_thickness/2, 0])
       rotate([90,0,0])
         linear_extrude(fin_thickness)
