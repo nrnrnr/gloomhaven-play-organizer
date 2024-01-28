@@ -398,6 +398,7 @@ module support_fin(theta, length, base_width=40, layer_height = 0.2) {
 
   translate([fin_gap / sin(theta),0,0])
     union () {
+      sprue(0.1);
       for(i=[1:fin_height/sprue_vertical_spacing])
         sprue(i);
       translate([0, fin_thickness/2, 0])
