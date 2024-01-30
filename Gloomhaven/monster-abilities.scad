@@ -1,12 +1,11 @@
-
 $fa = true ? 4 : 2;    // minimum angle (fine resolution)
 $fs = true ? 1 : 0.4;  // minimum size (fine resolution)
 
 use <drawer.scad>  // reusable primitives
 
-dry_run = true;
+dry_run = false;
 final_run = !dry_run;
-add_text = false;
+add_text = !$preview;
 
 epsilon = 0.001;
 
@@ -47,7 +46,8 @@ sleevedsmallwidth = 46;
 cardslength = sleevedsmallwidth + 4;
 cardsthickness = 4.3;
 cardsdepth = 25; // leaves room for monster name to show, at least partially
-cardsceiling = dry_run ? 3 : sleevedsmallwidth + 2 - cardsdepth;
+cardsceiling = dry_run ? 3 : min(sleevedsmallheight + 2 - cardsdepth,
+                                 tokenlength + 2 - tokendepth);
 
 shoulder_width = dry_run ? 2.5 : 4.4; // need 4.4 so wall not too thin behind thumb indent
 shadow_line_width = dry_run ? 1 : 7;
@@ -57,8 +57,12 @@ tab_relief = 2; // space on shoulder cover above and below tab
 
 wedge_clearance = 0.5; // horizontal space
 wedgelen = min(30, 0.4 * length);
-tab_guarantee = 0.6;  // inserts at least this much even when shifted
-                      // 1.0 felt too big (too tight a fit)
+tab_guarantee = 1.1;  // inserts at least this much even when shifted
+                      // 0.6 is pretty good on a short box with no flex.  A bit tight
+                      //     but workable
+                      // 1.0 felt too big (too tight a fit) on a very short box with no flex
+                      // 1.1 attempt on long box
+                      // XXX on the long box I would go with 1.3 or 1.5 even
 tabdepth = shoulder_clearance + tab_guarantee;
 tabheight = // shoulder_overlap - tab_relief - 1;
   2 * tabdepth * tan(dry_run ? 60 : 60);
@@ -225,7 +229,7 @@ module partial_cap(groups_covered) {
     mirror([0,0,1]) mirror([1,0,0]) wedge(tablen);
 }
 
-textthickness = 0.8;
+textthickness = 0.2; // was 0.8, was too much for cap thickness of 2
 
 module place_bottom_text() {
   translate([0,0,textthickness-epsilon])
@@ -239,31 +243,38 @@ module place_bottom_text() {
 
 module half_sphere(r) {
   above(0)
-  sphere(r);
+  sphere(r, $fn= $preview ? 40 : 300);
 }
 
 module full_cap(chamfer_angle = 45, label) {
 
-    thumb_radius = 57;
+    // was shoulder_width - thumb_retract == 4.4 - 1, 
+    // meaning indented by 3.4.  (measured at 3.6).  This was too
+    // much, and it punched a hole right through the cover.
+
+    thumb_retract = 4.4 - 1.7; // indent by 1.7mm
+
+    thumb_radius = 30; // 57 leaves 27mm width: too wide
 
     module thumb_holes(y) {
-      translate([shoulder_width - 1 - thumb_radius,y,8])
+      translate([shoulder_width - thumb_retract - thumb_radius,y,8])
         half_sphere(r=thumb_radius);
-      translate([width - (shoulder_width - 1 - thumb_radius),y,8])
+      translate([width - (shoulder_width - thumb_retract - thumb_radius),y,8])
         half_sphere(r=thumb_radius);
     }
 
 
 
   delta = shoulder_cover_thickness;
+  cut_block_extra = 0.4;
   difference () {
     cube([width, length, capheight]);
     translate(delta * v110)
-      translate([0,0, capheight - shoulder_overlap])
-      cube([width - 2 * delta, length - 2 * delta, capheight]);
+      translate([0,cut_block_extra / 2, capheight - shoulder_overlap])
+      cube([width - 2 * delta, length - 2 * delta - cut_block_extra, capheight]);
     translate(shoulder_width * v110)
-      translate([0,0, cap_thickness])
-      cube([width - 2 * shoulder_width, length - 2 * shoulder_width, capheight]);
+      translate([0,cut_block_extra/2, cap_thickness])
+      cube([width - 2 * shoulder_width, length - 2 * shoulder_width - cut_block_extra, capheight]);
     w = full_cap_chamfer_width;
     anti_chamfer_bottom([width, length, capheight], w, 45);
 
@@ -311,12 +322,12 @@ module tilted_full_cap(theta=45, label) {
 }
     
 
-module supported_full_cap(theta=45,label) {
+module supported_full_cap(theta=40,label) {
   tilted_full_cap(theta=theta,label=label);
   w = full_cap_chamfer_width;  
   text_shift = dry_run ? 0 : 5;
   translate([w + (capheight - w * sin(theta)) * sin(theta),width/2+text_shift,0])
-    support_fin(theta = theta, length = 0.60 * length, base_width = 0.70 * width);
+    support_fin(theta = theta, length = 0.85 * length, base_width = 0.70 * width);
   // add adhesion support ("mouse ears")
   ear_size = 15;
   ear_distance = 5;
@@ -468,9 +479,10 @@ module test_fit_pair (label) {
 
 if (dry_run) {
 
-  test_fit_pair("C");
+  test_fit_pair("D");
   // test C: tab depth is *single* shoulder clearance plus guarantee
   //         shoulder clearance is 0.4
+  // test D: like C but use sheared sprues
 }
 
 
@@ -484,12 +496,17 @@ module capped_block() {
 }
 
 //if (final_run) capped_block();
-if (final_run) supported_full_cap();
+if (false && final_run) {
+  supported_full_cap();
+  translate([0,width+30,0]) rotate([0,0,-90]) translate([-width, 0,0]) block();
+}
 
 
+//translate([20,0,0]) full_cap();
+//module line(y) translate([-10,y,-10]) color("blue") cube([width + 20,0.2, height + 20]);
 
-
-//build_volume();
+translate([0,(210-width)/2,0]) supported_full_cap();
+if ($preview) { build_volume(); }
 
 //rotate([0, 45, 0])
 //tokens_test(theta=45);
