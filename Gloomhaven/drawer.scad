@@ -384,7 +384,7 @@ module support_fin(theta, length, base_width=40, layer_height = 0.2) {
     cube([d, d, h]);
   }
 
-  module old_unplaced_sprue() {
+  module simple_unplaced_sprue() {
     thickness = 0.5;  // from video
     tooth = 0.25;
     length = fin_gap / sin(theta)  + thickness / tan(theta);
@@ -400,7 +400,7 @@ module support_fin(theta, length, base_width=40, layer_height = 0.2) {
     }
   }
 
-  module unplaced_sprue() {
+  module Y_shaped_unplaced_sprue() {
     // center bottom tip is at origin
     tip_thickness = 0.5;  // from video
     sprue_length = fin_gap / sin(theta)  + tip_thickness / tan(theta);
@@ -417,6 +417,10 @@ module support_fin(theta, length, base_width=40, layer_height = 0.2) {
       polygon(base_points);
   }
 
+  module unplaced_sprue() {
+    simple_unplaced_sprue(); // leaves a cleaner breakoff than the Y-shaped kind
+  }
+
   sprue_vertical_spacing = 10;
 
   module sprue(i) {
@@ -424,12 +428,14 @@ module support_fin(theta, length, base_width=40, layer_height = 0.2) {
       unplaced_sprue();
   }
 
-  sprue(0.1);
-  for(i=[1:fin_height/sprue_vertical_spacing])
-    sprue(i);
 
   translate([fin_gap / sin(theta),0,0])
     union () {
+      // if going with Y-shaped sprues, move them outside this translation
+      sprue(0.1);
+      for(i=[1:fin_height/sprue_vertical_spacing])
+        sprue(i);
+
       translate([0, fin_thickness/2, 0])
       rotate([90,0,0])
         linear_extrude(fin_thickness)
