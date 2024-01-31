@@ -57,7 +57,7 @@ shoulder_width = dry_run ? 2.5 : 4.4; // need 4.4 so wall not too thin behind th
 shadow_line_width = dry_run ? 1 : 7;
 shoulder_clearance = 0.4;
 shoulder_cover_thickness = 1;
-tab_relief = 1.7; // space on shoulder cover above and below tab
+tab_relief = 1.6; // space on shoulder cover above and below tab
 
 wedge_clearance = 0.5; // horizontal space
 wedgelen = min(30, 0.4 * length);
@@ -79,7 +79,7 @@ cramming = true; // cramming to fit in build volume
 // groups_gap = 4; // need space because single block has two partial caps
 groups_gap = 5; // use single full cap, print on diagonal
 cap_thickness = 2;
-full_cap_chamfer_width = dry_run ? 5 : cramming ? 8.5 : 7; // 0.75 * cap_thickness;
+full_cap_chamfer_width = dry_run ? 5 : cramming ? 7.5 : 7; // 0.75 * cap_thickness;
 capheight = shoulder_overlap + cardsceiling + cap_thickness;
 echo(capheight=capheight);
 
