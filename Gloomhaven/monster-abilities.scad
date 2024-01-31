@@ -40,20 +40,24 @@ clearances_width = [0.4, 0.45, 0.50];
 clearance_thick = 0.35; // final decision on initiative-token slots
 clearance_width = 0.4;
 
-sleevedsmallheight = 73; // measure sleeved cards
+sleeved = true;
+sleevedsmallheight = sleeved ? 73 : 68; // measure sleeved cards
 sleevedsmallwidth = 46;
 
 cardslength = sleevedsmallwidth + 4;
 cardsthickness = 4.3;
 cardsdepth = 25; // leaves room for monster name to show, at least partially
-cardsceiling = dry_run ? 3 : min(sleevedsmallheight + 2 - cardsdepth,
+cardsceiling = dry_run ? 3 : max(sleevedsmallheight + 2 - cardsdepth,
                                  tokenlength + 2 - tokendepth);
+echo(ceiling = cardsceiling);
+
+echo(small_cards_height = cardsdepth + cardsceiling, sleeved = sleevedsmallheight);
 
 shoulder_width = dry_run ? 2.5 : 4.4; // need 4.4 so wall not too thin behind thumb indent
 shadow_line_width = dry_run ? 1 : 7;
 shoulder_clearance = 0.4;
 shoulder_cover_thickness = 1;
-tab_relief = 2; // space on shoulder cover above and below tab
+tab_relief = 1.7; // space on shoulder cover above and below tab
 
 wedge_clearance = 0.5; // horizontal space
 wedgelen = min(30, 0.4 * length);
@@ -67,13 +71,15 @@ tabdepth = shoulder_clearance + tab_guarantee;
 tabheight = // shoulder_overlap - tab_relief - 1;
   2 * tabdepth * tan(dry_run ? 60 : 60);
 
-shoulder_overlap = min(dry_run ? 6.5 : 10, tabheight + 2 * tab_relief);
+shoulder_overlap = max(dry_run ? 6.5 : 8, tabheight + 2 * tab_relief);
+echo(shoulder_overlap=shoulder_overlap);
 
+cramming = true; // cramming to fit in build volume
 
 // groups_gap = 4; // need space because single block has two partial caps
 groups_gap = 5; // use single full cap, print on diagonal
 cap_thickness = 2;
-full_cap_chamfer_width = dry_run ? 5 : 7; // 0.75 * cap_thickness;
+full_cap_chamfer_width = dry_run ? 5 : cramming ? 8.5 : 7; // 0.75 * cap_thickness;
 capheight = shoulder_overlap + cardsceiling + cap_thickness;
 echo(capheight=capheight);
 
@@ -153,23 +159,36 @@ module tokens_test(theta = 60) {
   }
 }
 
-module left_unit () {
+module left_unit (contents=false) {
   tlen = tokenwidth + clearance_width;
   twid = tokenthickness + clearance_thick;
   tinysep = 2;
   union () {
     translate([0, tlen * sin(45), height - tokendepth])
       rotate([0,0,-45])
-      chamfered_well([tlen, twid, tokendepth], depth=1);
+      if (contents) {
+        translate([clearance_width/2, clearance_thick/2, 0])
+        color("white") cube([tokenwidth, tokenthickness, tokenlength]);
+      } else {
+        chamfered_well([tlen, twid, tokendepth], depth=1);
+      }
     shift = (tlen/2 + twid + tinysep) * northeast;
-    lift(height-cardsdepth)
     translate(shift)
-      chamfered_well([cardslength,cardsthickness,cardsdepth], 2);
+      if (contents) {
+        deckthickness = cardsthickness - 0.4; // spitballed
+        translate([(cardslength - sleevedsmallwidth)/2,
+                   (cardsthickness - deckthickness)/2,
+                   (height-cardsdepth)])
+        color("red") cube([sleevedsmallwidth, deckthickness, sleevedsmallheight]);
+      } else {
+        lift(height-cardsdepth)
+          chamfered_well([cardslength,cardsthickness,cardsdepth], 2);
+      }
   }
 }
 
-module right_unit() {
-  mirror([1,0,0]) left_unit();
+module right_unit(contents) {
+  mirror([1,0,0]) left_unit(contents=contents);
 }
 
 unit_shift = 4;
@@ -243,7 +262,7 @@ module place_bottom_text() {
 
 module half_sphere(r) {
   above(0)
-  sphere(r, $fn= $preview ? 40 : 300);
+  sphere(r, $fs= $preview ? 2 : 0.4);
 }
 
 module full_cap(chamfer_angle = 45, label) {
@@ -276,7 +295,7 @@ module full_cap(chamfer_angle = 45, label) {
       translate([0,cut_block_extra/2, cap_thickness])
       cube([width - 2 * shoulder_width, length - 2 * shoulder_width - cut_block_extra, capheight]);
     w = full_cap_chamfer_width;
-    anti_chamfer_bottom([width, length, capheight], w, 45);
+    anti_chamfer_bottom([width, length, capheight], w, chamfer_angle);
 
     if (final_run) {
       translate([0.2 * width,length/2,0])
@@ -318,11 +337,19 @@ module tilted_full_cap(theta=45, label) {
   translate([0,w,0])
   rotate([theta, 0, 0])
     translate([0, - w * cos(theta), 0])
-    full_cap(theta,label=label);
+    full_cap(chamfer_angle = theta,label=label);
 }
     
 
-module supported_full_cap(theta=40,label) {
+module supported_full_cap(theta=39.50,label) { // was 39.5
+  z_extent = length * sin(theta) + (capheight - full_cap_chamfer_width * sin(theta)) * cos(theta);
+  echo(z_extent=z_extent);
+  //zline(z_extent);
+
+  x_extent = length * cos(theta) + (capheight - full_cap_chamfer_width * sin(theta)) * sin(theta);
+  echo(x_extent=x_extent);
+  //xline(x_extent);
+
   tilted_full_cap(theta=theta,label=label);
   w = full_cap_chamfer_width;  
   text_shift = dry_run ? 0 : 5;
@@ -365,6 +392,19 @@ module block () {
       wedge(slotlen);
   }
 }
+
+module block_contents() {
+  for (i = [0:1:17]) {
+    gap = i >= 12 ? 2 * groups_gap : (i >= 6 ? groups_gap : 0);
+    translate([unit_shift + shoulder_width,
+               shoulder_width + gap + smallsep + i * stride,
+               epsilon])
+      left_unit(contents = true);
+    translate([width - unit_shift - shoulder_width, shoulder_width + gap + smallsep + i * stride + stride/2, epsilon])
+      right_unit(contents = true);
+    }
+}
+  
 
 test_fit_block_height = shoulder_overlap + shadow_line_width + 2;
 module test_fit_block (label) { 
@@ -488,25 +528,48 @@ if (dry_run) {
 
 
 module capped_block() {
-  %block();
+  block();
   translate([0,0,height-shoulder_overlap])
     translate([0,length,capheight])
     rotate([180,0,0])
     full_cap();
 }
 
+//%capped_block();
+
+//%block();
+//block_contents();
+
 //if (final_run) capped_block();
-if (false && final_run) {
+if (final_run) {
   supported_full_cap();
-  translate([0,width+30,0]) rotate([0,0,-90]) translate([-width, 0,0]) block();
+//  translate([0,width+30,0]) rotate([0,0,-90]) translate([-width, 0,0]) block();
 }
+
+//build_volume();
 
 
 //translate([20,0,0]) full_cap();
-//module line(y) translate([-10,y,-10]) color("blue") cube([width + 20,0.2, height + 20]);
+module yline(y) translate([-10,y,-10]) color("blue") cube([width + 20,0.2, height + 20]);
 
-translate([0,(210-width)/2,0]) supported_full_cap();
-if ($preview) { build_volume(); }
+module xline(x) translate([x,-10,-10]) color("blue") cube([0.2, 230, 270]);
+
+module zline(z) translate([-10,-10,z]) color("blue") cube([width + 20 + 200,length + 20, 0.2]);
+
+
+//zline(193.737);
+
+//zline(220);
+//xline(250);
+
+//zline(2);  // bottom of cards
+//color("Cyan") zline(15); // bottom of tokens
+//color("green") zline(height + cardsceiling); // top of sleeved cards + 2mm
+//color("red") zline(height - cardsdepth);
+//zline(height - tokendepth); // bottom of token
+
+//translate([0,(210-width)/2,0]) supported_full_cap();
+//if ($preview) { build_volume(); }
 
 //rotate([0, 45, 0])
 //tokens_test(theta=45);
