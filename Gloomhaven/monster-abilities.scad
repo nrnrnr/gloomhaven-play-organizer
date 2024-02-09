@@ -57,7 +57,7 @@ shoulder_width = dry_run ? 2.5 : 4.4; // need 4.4 so wall not too thin behind th
 shadow_line_width = dry_run ? 1 : 7;
 shoulder_clearance = 0.4;
 shoulder_cover_thickness = 1;
-tab_relief = 1.6; // space on shoulder cover above and below tab
+tab_relief = 1.03; // space on shoulder cover above and below tab
 
 wedge_clearance = 0.5; // horizontal space
 wedgelen = min(30, 0.4 * length);
@@ -71,15 +71,13 @@ tabdepth = shoulder_clearance + tab_guarantee;
 tabheight = // shoulder_overlap - tab_relief - 1;
   2 * tabdepth * tan(dry_run ? 60 : 60);
 
-shoulder_overlap = max(dry_run ? 6.5 : 8, tabheight + 2 * tab_relief);
+shoulder_overlap = max(dry_run ? 6.5 : 7, tabheight + 2 * tab_relief);
 echo(shoulder_overlap=shoulder_overlap);
-
-cramming = true; // cramming to fit in build volume
 
 // groups_gap = 4; // need space because single block has two partial caps
 groups_gap = 5; // use single full cap, print on diagonal
 cap_thickness = 2;
-full_cap_chamfer_width = dry_run ? 5 : cramming ? 7.5 : 7; // 0.75 * cap_thickness;
+full_cap_chamfer_width = dry_run ? 5 : 5.5; // 0.75 * cap_thickness;
 capheight = shoulder_overlap + cardsceiling + cap_thickness;
 echo(capheight=capheight);
 
@@ -354,7 +352,7 @@ module supported_full_cap(theta=39.50,label) { // was 39.5
   w = full_cap_chamfer_width;  
   text_shift = dry_run ? 0 : 5;
   translate([w + (capheight - w * sin(theta)) * sin(theta),width/2+text_shift,0])
-    support_fin(theta = theta, length = 0.85 * length, base_width = 0.70 * width);
+    support_fin(theta = theta, length = 0.90 * length, base_width = 0.70 * width);
   // add adhesion support ("mouse ears")
   ear_size = 15;
   ear_distance = 5;
