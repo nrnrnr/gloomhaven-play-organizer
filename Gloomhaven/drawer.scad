@@ -425,10 +425,14 @@ module support_fin(theta, length, base_width=40, layer_height = 0.2) {
     simple_unplaced_sprue(); // leaves a cleaner breakoff than the Y-shaped kind
   }
 
-  sprue_vertical_spacing = 10;
+  sprue_minimum_vertical_spacing = 10;
+  number_of_sprues = ceil(fin_height / sprue_minimum_vertical_spacing) + 1; // fencepost
+  sprue_ends_space = 2; // below bottom and above top
+  sprue_vertical_spacing = (fin_height - 2 * sprue_ends_space) / (number_of_sprues - 1);
 
   module sprue(i) {
-    translate([i * sprue_vertical_spacing / tan(theta), 0, i * sprue_vertical_spacing])
+    translate([(i * sprue_vertical_spacing + sprue_ends_space) / tan(theta), 0,
+               i * sprue_vertical_spacing + sprue_ends_space])
       unplaced_sprue();
   }
 
@@ -436,8 +440,7 @@ module support_fin(theta, length, base_width=40, layer_height = 0.2) {
   translate([fin_gap / sin(theta),0,0])
     union () {
       // if going with Y-shaped sprues, move them outside this translation
-      sprue(0.1);
-      for(i=[1:fin_height/sprue_vertical_spacing])
+      for(i=[0:number_of_sprues-1])
         sprue(i);
 
       translate([0, fin_thickness/2, 0])
