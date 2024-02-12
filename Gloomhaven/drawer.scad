@@ -480,3 +480,18 @@ module anti_chamfer_bottom(dimens, width, theta) {
     rotate([0, 90 - theta, 0])
     cube([dimens.x, dimens.y + 2 * epsilon, dimens.z]);
 }
+
+
+module anti_fillet_cylinder_bottom(rcyl, rfillet) {
+  difference () {
+    rotate_extrude(angle=360)
+      translate([rcyl,0])
+      square(rfillet);
+    translate([0,0,rfillet])
+      rotate_extrude(angle=360)
+      translate([rcyl,0])
+      circle(r=rfillet);
+  }
+}
+
+    
