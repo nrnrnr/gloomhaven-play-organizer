@@ -139,29 +139,6 @@ male_cap_base_diameter = 66;
 // Male thread diameter = internal thread ID - thread_gap for clearance
 male_cap_thread_diameter = thread_inner_diameter + 2*thread_depth - thread_gap;
 
-module male_cap() {
-    union() {
-        // Solid base
-        cylinder(h = wall_thickness, d = male_cap_base_diameter);
-        
-        // Hollow male threads extending upward from base
-        translate([0, 0, wall_thickness])
-            difference() {
-                threaded_rod(d = male_cap_thread_diameter,
-                           l = thread_height,
-                           pitch = thread_pitch,
-                           internal = false,
-                           anchor = BOTTOM,
-                           $fn = 64);
-                
-                // Hollow out with standard thread wall thickness
-                translate([0, 0, -epsilon])
-                    cylinder(h = thread_height + 2*epsilon,
-                           d = male_cap_thread_diameter - 2*thread_wall_thickness);
-            }
-    }
-}
-
 module perforated_base(diameter, perforation_diameter) {
     union() {
         // 1. Outer hollow cylinder
@@ -196,6 +173,35 @@ module perforated_base(diameter, perforation_diameter) {
     }
 }
 
+
+module male_cap() {
+    union() {
+        // Solid base
+//        cylinder(h = wall_thickness, d = male_cap_base_diameter);
+        perforated_base(male_cap_base_diameter,
+                        base_external_thread_diameter - 2 * thread_wall_thickness - 2);
+        
+        // Hollow male threads extending upward from base
+        translate([0, 0, wall_thickness])
+            difference() {
+                threaded_rod(d = male_cap_thread_diameter,
+                           l = thread_height,
+                           pitch = thread_pitch,
+                           internal = false,
+                           anchor = BOTTOM,
+                           $fn = 64);
+                
+                // Hollow out with standard thread wall thickness
+                translate([0, 0, -epsilon])
+                    cylinder(h = thread_height + 2*epsilon,
+                           d = male_cap_thread_diameter - 2*thread_wall_thickness);
+            }
+    }
+}
+
+
+translate([60,0,0])
+  male_cap();
 
 
 difference() {
