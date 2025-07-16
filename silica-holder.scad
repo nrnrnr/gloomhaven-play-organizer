@@ -41,18 +41,19 @@ module hollow_cylinder(height, outer_d, thickness) {
 
 module main_cylinder() {
     // 1. Base (solid bottom)
-    cylinder(h = wall_thickness + epsilon, d = base_diameter);
+%    cylinder(h = wall_thickness + epsilon, d = base_diameter);
     
     // 2. External thread support section
-    translate([0, 0, wall_thickness])
+color([1,0,0,0.5])
+    translate([0, 0, thread_height - epsilon])
         hollow_cylinder(
-            height = thread_height - wall_thickness + epsilon,
-            outer_d = base_diameter,
+            height = 5, 
+            outer_d = base_external_thread_diameter,
             thickness = thread_wall_thickness
         );
     
     // 3. Main cylinder body
-    translate([0, 0, thread_height])
+%    translate([0, 0, thread_height])
         hollow_cylinder(
             height = cylinder_height - 2 * thread_height + epsilon,
             outer_d = outer_diameter,
@@ -115,7 +116,7 @@ module external_threads() {
     // External threads on closed end (bottom) using BOSL2 - hollowed to match base
     difference() {
         threaded_rod(d=base_external_thread_diameter, 
-                    l=thread_height, 
+                    l=thread_height + epsilon, 
                     pitch=thread_pitch, 
                     internal=false,
                     anchor=BOTTOM,
@@ -123,14 +124,84 @@ module external_threads() {
         
         // Hollow out to match the cylinder it's mounted on
         translate([0, 0, -epsilon])
-            cylinder(h=thread_height + 2*epsilon, 
+            cylinder(h=thread_height + 3*epsilon, 
                     d=base_diameter - 2*thread_wall_thickness);
     }
 }
 
+////////////////////////////////////////////
+
+male_cap_base_diameter = 66;
+
+// Male cap thread diameter calculation:
+// The cylinder's internal threads have ID = thread_inner_diameter + 2*thread_depth
+// For proper mating, the male cap's external threads should be slightly smaller
+// Male thread diameter = internal thread ID - thread_gap for clearance
+male_cap_thread_diameter = thread_inner_diameter + 2*thread_depth - thread_gap;
+
+module male_cap() {
+    union() {
+        // Solid base
+        cylinder(h = wall_thickness, d = male_cap_base_diameter);
+        
+        // Hollow male threads extending upward from base
+        translate([0, 0, wall_thickness])
+            difference() {
+                threaded_rod(d = male_cap_thread_diameter,
+                           l = thread_height,
+                           pitch = thread_pitch,
+                           internal = false,
+                           anchor = BOTTOM,
+                           $fn = 64);
+                
+                // Hollow out with standard thread wall thickness
+                translate([0, 0, -epsilon])
+                    cylinder(h = thread_height + 2*epsilon,
+                           d = male_cap_thread_diameter - 2*thread_wall_thickness);
+            }
+    }
+}
+
+module perforated_base(diameter, perforation_diameter) {
+    union() {
+        // 1. Outer hollow cylinder
+        hollow_cylinder(height = wall_thickness, 
+                       outer_d = diameter, 
+                       thickness = (diameter - perforation_diameter) / 2);
+        
+        // 2. Concentric cylinders spaced 2mm apart (circumference to circumference)
+        core_radius = 7.5 / 2;
+        outer_radius = diameter / 2;
+        
+        // Calculate radii for concentric cylinders
+        for (r = [core_radius + 2 + 1.2 : 2 + 1.2 : outer_radius - 1.2]) {
+            if (r + 0.6 < outer_radius - (diameter - perforation_diameter) / 2) {
+                difference() {
+                    cylinder(h = wall_thickness, r = r + 0.6);
+                    translate([0, 0, -epsilon])
+                        cylinder(h = wall_thickness + 2*epsilon, r = r - 0.6);
+                }
+            }
+        }
+        
+        // 3. Solid core cylinder (7.5mm diameter)
+        cylinder(h = wall_thickness, d = 7.5);
+        
+        // 4. Four radial ribs spaced at equal intervals
+        for (angle = [0, 90, 180, 270]) {
+            rotate([0, 0, angle])
+                translate([-1.2, 0, 0])  // 2.4mm wide tangentially, centered on radius
+                cube([2.4, outer_radius, wall_thickness]);
+        }
+    }
+}
+
+
+
 difference() {
     union() {
         main_cylinder();
+color([0,0,1,0.5])
         external_threads();
         internal_threads();
     }
