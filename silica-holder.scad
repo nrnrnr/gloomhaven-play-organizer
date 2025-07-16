@@ -18,6 +18,9 @@ thread_pitch = 3;   // distance between adjacent threads
 thread_depth = 1.2; // depth of thread groove
 thread_gap = 0.2;   // clearance between male and female threads
 
+max_bridge_length = 8.5;
+rib_width = 2;
+
 // Nut calculations (external component with outer_diameter)
 nut_inner_thread_diameter = outer_diameter - 2 * thread_depth;
 nut_bore_diameter = nut_inner_thread_diameter - 2 * thread_wall_thickness;
@@ -36,6 +39,30 @@ module hollow_cylinder(height, outer_d, thickness) {
         cylinder(h = height, d = outer_d);
         translate([0, 0, -epsilon])
             cylinder(h = height + 2*epsilon, d = outer_d - 2*thickness);
+    }
+}
+
+module perforated_cylinder(height, outer_d, thickness) {
+    // Calculate number of ribs
+    circumference = PI * outer_d;
+    num_ribs = ceil(circumference / (max_bridge_length + rib_width));
+    
+    union() {
+        // Stack of hollow cylinders (1mm high, 2mm spacing)
+        for (z = [0 : 2 : height - 1]) {
+            if (z + 1 <= height) {
+                translate([0, 0, z])
+                    hollow_cylinder(height = min(1, height - z), outer_d = outer_d, thickness = thickness);
+            }
+        }
+        
+        // Vertical ribs for reinforcement
+        for (i = [0 : num_ribs - 1]) {
+            angle = i * 360 / num_ribs;
+            rotate([0, 0, angle])
+                translate([outer_d/2 - thickness, -rib_width/2, 0])
+                    cube([thickness, rib_width, height]);
+        }
     }
 }
 
@@ -73,25 +100,27 @@ module perforated_base(d, id, h=wall_thickness+epsilon) {
 
 
 
+extra_bottom_support = 5;
+
 module main_cylinder() {
     // 1. Base (solid bottom)
 //  %    cylinder(h = wall_thickness + epsilon, d = base_diameter);
-     perforated_base(h = wall_thickness + epsilon, d = base_diameter,
-                     id = base_external_thread_diameter - 2 * thread_wall_thickness - 2);
+   perforated_base(h = wall_thickness + epsilon, d = base_diameter - thread_depth,
+                   id = base_external_thread_diameter - 2 * thread_wall_thickness - 2);
 
     
     // 2. External thread support section
 color([1,0,0,0.5])
     translate([0, 0, thread_height - epsilon])
         hollow_cylinder(
-            height = 5, 
-            outer_d = base_external_thread_diameter,
-            thickness = thread_wall_thickness
+            height = extra_bottom_support, 
+            outer_d = outer_diameter, //base_external_thread_diameter,
+            thickness = thread_wall_thickness + outer_diameter - base_external_thread_diameter
         );
     
     // 3. Main cylinder body
 %    translate([0, 0, thread_height])
-        hollow_cylinder(
+        perforated_cylinder(
             height = cylinder_height - 2 * thread_height + epsilon,
             outer_d = outer_diameter,
             thickness = wall_thickness
