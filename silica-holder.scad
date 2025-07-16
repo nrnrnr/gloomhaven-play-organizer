@@ -39,9 +39,46 @@ module hollow_cylinder(height, outer_d, thickness) {
     }
 }
 
+module perforated_base(d, id, h=wall_thickness+epsilon) {
+  diameter = d;
+  perforation_diameter = id;
+    union() {
+        // 1. Outer hollow cylinder
+        hollow_cylinder(height = h, 
+                       outer_d = diameter, 
+                       thickness = (diameter - perforation_diameter) / 2);
+        
+        // 2. Concentric cylinders spaced 2mm apart (circumference to circumference)
+        core_radius = 7.5 / 2;
+        perforation_radius = perforation_diameter / 2;
+        
+        // Calculate radii for concentric cylinders
+        for (r = [core_radius + 2 + 1.2 : 2 + 1.2 : perforation_radius + 1.2]) {
+            hollow_cylinder(height = h, 
+                           outer_d = 2 * (r + 0.6), 
+                           thickness = 1.2);
+        }
+        
+        // 3. Solid core cylinder (7.5mm diameter)
+        cylinder(h = h, d = 7.5);
+        
+        // 4. Four radial ribs spaced at equal intervals
+        for (angle = [0, 90, 180, 270]) {
+            rotate([0, 0, angle])
+                translate([-1.2, 0, 0])  // 2.4mm wide tangentially, centered on radius
+                cube([2.4, perforation_radius, h]);
+        }
+    }
+}
+
+
+
 module main_cylinder() {
     // 1. Base (solid bottom)
-%    cylinder(h = wall_thickness + epsilon, d = base_diameter);
+//  %    cylinder(h = wall_thickness + epsilon, d = base_diameter);
+     perforated_base(h = wall_thickness + epsilon, d = base_diameter,
+                     id = base_external_thread_diameter - 2 * thread_wall_thickness - 2);
+
     
     // 2. External thread support section
 color([1,0,0,0.5])
@@ -138,41 +175,6 @@ male_cap_base_diameter = 66;
 // For proper mating, the male cap's external threads should be slightly smaller
 // Male thread diameter = internal thread ID - thread_gap for clearance
 male_cap_thread_diameter = thread_inner_diameter + 2*thread_depth - thread_gap;
-
-module perforated_base(diameter, perforation_diameter) {
-    union() {
-        // 1. Outer hollow cylinder
-        hollow_cylinder(height = wall_thickness, 
-                       outer_d = diameter, 
-                       thickness = (diameter - perforation_diameter) / 2);
-        
-        // 2. Concentric cylinders spaced 2mm apart (circumference to circumference)
-        core_radius = 7.5 / 2;
-        outer_radius = diameter / 2;
-        
-        // Calculate radii for concentric cylinders
-        for (r = [core_radius + 2 + 1.2 : 2 + 1.2 : outer_radius - 1.2]) {
-            if (r + 0.6 < outer_radius - (diameter - perforation_diameter) / 2) {
-                difference() {
-                    cylinder(h = wall_thickness, r = r + 0.6);
-                    translate([0, 0, -epsilon])
-                        cylinder(h = wall_thickness + 2*epsilon, r = r - 0.6);
-                }
-            }
-        }
-        
-        // 3. Solid core cylinder (7.5mm diameter)
-        cylinder(h = wall_thickness, d = 7.5);
-        
-        // 4. Four radial ribs spaced at equal intervals
-        for (angle = [0, 90, 180, 270]) {
-            rotate([0, 0, angle])
-                translate([-1.2, 0, 0])  // 2.4mm wide tangentially, centered on radius
-                cube([2.4, outer_radius, wall_thickness]);
-        }
-    }
-}
-
 
 module male_cap() {
     union() {
