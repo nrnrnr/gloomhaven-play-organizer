@@ -237,11 +237,21 @@ female_cap_base_diameter = 66;
 female_cap_internal_thread_diameter = base_external_thread_diameter + thread_gap;
 
 module female_cap() {
+    tab_width = 19;     // tangential width
+    tab_extension = 6;  // radial extension beyond base
+    
     union() {
         // Hollow base - completely open from threads inward
         hollow_cylinder(height = wall_thickness,
                        outer_d = female_cap_base_diameter,
                        thickness = (female_cap_base_diameter - female_cap_internal_thread_diameter - 2*thread_wall_thickness) / 2);
+        
+        // Four tabs at compass directions
+        for (angle = [0, 90, 180, 270]) {
+            rotate([0, 0, angle])
+                translate([female_cap_base_diameter/2 - 6, -tab_width/2, 0])
+                    cube([tab_extension + 6, tab_width, wall_thickness]);
+        }
         
         // Internal threads using threaded_nut
         translate([0, 0, wall_thickness])
@@ -262,10 +272,10 @@ module female_cap() {
 }
 
 
-translate([60,0,0])
+translate([80,0,0])
   male_cap();
 
-translate([-60,0,0])
+translate([-80,0,0])
   female_cap();
 
 
