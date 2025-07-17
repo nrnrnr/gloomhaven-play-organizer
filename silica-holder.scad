@@ -42,6 +42,36 @@ module hollow_cylinder(height, outer_d, thickness) {
     }
 }
 
+module rounded_cube_xy(size, radius) {
+    // Handle both single value and vector size like cube()
+    dims = is_list(size) ? size : [size, size, size];
+    x = dims[0];
+    y = dims[1];
+    z = dims[2];
+    
+    union() {
+        // Main body (reduced by radius on x and y)
+        translate([radius, radius, 0])
+            cube([x - 2*radius, y - 2*radius, z]);
+        
+        // Four corner cylinders
+        translate([radius, radius, 0])
+            cylinder(h = z, r = radius);
+        translate([x - radius, radius, 0])
+            cylinder(h = z, r = radius);
+        translate([radius, y - radius, 0])
+            cylinder(h = z, r = radius);
+        translate([x - radius, y - radius, 0])
+            cylinder(h = z, r = radius);
+        
+        // Side rectangles to connect corners
+        translate([0, radius, 0])
+            cube([x, y - 2*radius, z]);
+        translate([radius, 0, 0])
+            cube([x - 2*radius, y, z]);
+    }
+}
+
 module perforated_cylinder(height, outer_d, thickness) {
     // Calculate number of ribs
     circumference = PI * outer_d;
@@ -249,25 +279,20 @@ module female_cap() {
         // Four tabs at compass directions with rounded corners
         for (angle = [0, 90, 180, 270]) {
             rotate([0, 0, angle]) {
-                // Main tab body
-                translate([female_cap_base_diameter/2 - 6 + 2.5, -tab_width/2 + 2.5, 0])
-                    cube([tab_extension + 6 - 5, tab_width - 5, wall_thickness]);
+                translate([female_cap_base_diameter/2 - 6, -tab_width/2, 0])
+                    rounded_cube_xy([tab_extension + 6, tab_width, wall_thickness], radius = 2.5);
                 
-                // Four corner cylinders for rounding
-                translate([female_cap_base_diameter/2 - 6 + 2.5, -tab_width/2 + 2.5, 0])
-                    cylinder(h = wall_thickness, r = 2.5);
-                translate([female_cap_base_diameter/2 + tab_extension - 2.5, -tab_width/2 + 2.5, 0])
-                    cylinder(h = wall_thickness, r = 2.5);
-                translate([female_cap_base_diameter/2 - 6 + 2.5, tab_width/2 - 2.5, 0])
-                    cylinder(h = wall_thickness, r = 2.5);
-                translate([female_cap_base_diameter/2 + tab_extension - 2.5, tab_width/2 - 2.5, 0])
-                    cylinder(h = wall_thickness, r = 2.5);
-                
-                // Side rectangles to connect corners
-                translate([female_cap_base_diameter/2 - 6, -tab_width/2 + 2.5, 0])
-                    cube([tab_extension + 6, tab_width - 5, wall_thickness]);
-                translate([female_cap_base_diameter/2 - 6 + 2.5, -tab_width/2, 0])
-                    cube([tab_extension + 6 - 5, tab_width, wall_thickness]);
+                // Inside corner rounding where tab meets circular base
+                for (side = [-1, 1]) {
+                    fudge = 0.4;
+                    translate([female_cap_base_diameter/2 - 2.5, side * (tab_width/2), 0]) {
+                        difference() {
+                            cube([2.5, side * 2.5 / 2, wall_thickness]);
+                            translate([2.5 + 2.5 * (tab_width/2) / (female_cap_base_diameter/2) - fudge, side * (2.5 - 2.5 + 2.5), -epsilon])
+                                cylinder(h = wall_thickness + 2*epsilon, r = 2.5);
+                        }
+                    }
+                }
             }
         }
         
