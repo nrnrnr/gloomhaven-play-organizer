@@ -230,9 +230,43 @@ module male_cap() {
     }
 }
 
+// Female cap calculations for external threads
+female_cap_base_diameter = 66;
+// Female cap needs internal threads to mate with cylinder's external threads
+// Internal thread diameter = base_external_thread_diameter + thread_gap for clearance
+female_cap_internal_thread_diameter = base_external_thread_diameter + thread_gap;
+
+module female_cap() {
+    union() {
+        // Hollow base - completely open from threads inward
+        hollow_cylinder(height = wall_thickness,
+                       outer_d = female_cap_base_diameter,
+                       thickness = (female_cap_base_diameter - female_cap_internal_thread_diameter - 2*thread_wall_thickness) / 2);
+        
+        // Internal threads using threaded_nut
+        translate([0, 0, wall_thickness])
+            intersection() {
+                threaded_nut(nutwidth = female_cap_internal_thread_diameter + 2*thread_wall_thickness + 10,
+                           id = female_cap_internal_thread_diameter,
+                           h = thread_height,
+                           pitch = thread_pitch,
+                           blunt_start = false,
+                           anchor = BOTTOM,
+                           $fn = 64);
+                
+                // Cylinder to limit the nut to our desired area
+                cylinder(h = thread_height,
+                        d = female_cap_internal_thread_diameter + 2*thread_wall_thickness + epsilon);
+            }
+    }
+}
+
 
 translate([60,0,0])
   male_cap();
+
+translate([-60,0,0])
+  female_cap();
 
 
 difference() {
