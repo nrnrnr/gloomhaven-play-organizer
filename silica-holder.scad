@@ -266,6 +266,15 @@ female_cap_base_diameter = 66;
 // Internal thread diameter = base_external_thread_diameter + thread_gap for clearance
 female_cap_internal_thread_diameter = base_external_thread_diameter + thread_gap;
 
+module maybe_shift_y(gate, distance) {
+  if (gate < 0) {
+    translate([0, distance, 0])
+      children();
+  } else {
+    children();
+  }
+}
+
 module female_cap() {
     tab_width = 19;     // tangential width
     tab_extension = 6;  // radial extension beyond base
@@ -278,17 +287,20 @@ module female_cap() {
         
         // Four tabs at compass directions with rounded corners
         for (angle = [0, 90, 180, 270]) {
+            fudge = 0.4; // gets circles close to tangent with base
             rotate([0, 0, angle]) {
                 translate([female_cap_base_diameter/2 - 6, -tab_width/2, 0])
                     rounded_cube_xy([tab_extension + 6, tab_width, wall_thickness], radius = 2.5);
                 
                 // Inside corner rounding where tab meets circular base
                 for (side = [-1, 1]) {
-                    fudge = 0.4;
                     translate([female_cap_base_diameter/2 - 2.5, side * (tab_width/2), 0]) {
                         difference() {
-                            cube([2.5, side * 2.5 / 2, wall_thickness]);
-                            translate([2.5 + 2.5 * (tab_width/2) / (female_cap_base_diameter/2) - fudge, side * (2.5 - 2.5 + 2.5), -epsilon])
+//color([0, 0, 1, 1])
+                            maybe_shift_y(side, -2.5/2)
+                            cube([2.5, 2.5 / 2, wall_thickness]);
+//color([1, 1, 0, 1])
+                            translate([2.5 + 2.5 * (tab_width/2) / (female_cap_base_diameter/2) - fudge, side * 2.5, -epsilon])
                                 cylinder(h = wall_thickness + 2*epsilon, r = 2.5);
                         }
                     }
