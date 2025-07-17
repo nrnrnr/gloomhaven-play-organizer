@@ -246,11 +246,29 @@ module female_cap() {
                        outer_d = female_cap_base_diameter,
                        thickness = (female_cap_base_diameter - female_cap_internal_thread_diameter - 2*thread_wall_thickness) / 2);
         
-        // Four tabs at compass directions
+        // Four tabs at compass directions with rounded corners
         for (angle = [0, 90, 180, 270]) {
-            rotate([0, 0, angle])
-                translate([female_cap_base_diameter/2 - 6, -tab_width/2, 0])
-                    cube([tab_extension + 6, tab_width, wall_thickness]);
+            rotate([0, 0, angle]) {
+                // Main tab body
+                translate([female_cap_base_diameter/2 - 6 + 2.5, -tab_width/2 + 2.5, 0])
+                    cube([tab_extension + 6 - 5, tab_width - 5, wall_thickness]);
+                
+                // Four corner cylinders for rounding
+                translate([female_cap_base_diameter/2 - 6 + 2.5, -tab_width/2 + 2.5, 0])
+                    cylinder(h = wall_thickness, r = 2.5);
+                translate([female_cap_base_diameter/2 + tab_extension - 2.5, -tab_width/2 + 2.5, 0])
+                    cylinder(h = wall_thickness, r = 2.5);
+                translate([female_cap_base_diameter/2 - 6 + 2.5, tab_width/2 - 2.5, 0])
+                    cylinder(h = wall_thickness, r = 2.5);
+                translate([female_cap_base_diameter/2 + tab_extension - 2.5, tab_width/2 - 2.5, 0])
+                    cylinder(h = wall_thickness, r = 2.5);
+                
+                // Side rectangles to connect corners
+                translate([female_cap_base_diameter/2 - 6, -tab_width/2 + 2.5, 0])
+                    cube([tab_extension + 6, tab_width - 5, wall_thickness]);
+                translate([female_cap_base_diameter/2 - 6 + 2.5, -tab_width/2, 0])
+                    cube([tab_extension + 6 - 5, tab_width, wall_thickness]);
+            }
         }
         
         // Internal threads using threaded_nut
