@@ -10,7 +10,6 @@ outer_diameter = 50;
 wall_thickness = 1.8;
 thread_wall_thickness = 2.4;  // thicker walls for threaded sections
 inner_diameter = outer_diameter - 2 * wall_thickness;
-thread_inner_diameter = outer_diameter - 2 * thread_wall_thickness;
 
 cylinder_height = 67;
 thread_height = 11;  // height of threaded section
@@ -26,7 +25,8 @@ nut_inner_thread_diameter = outer_diameter - 2 * thread_depth;
 nut_bore_diameter = nut_inner_thread_diameter - 2 * thread_wall_thickness;
 
 // Base calculations (this component's external threads)
-base_external_thread_diameter = nut_inner_thread_diameter - thread_gap;
+// Adjusted to mate with female cap while keeping main cylinder outer_diameter unchanged
+base_external_thread_diameter = (outer_diameter - 2*thread_wall_thickness) - thread_gap;
 base_diameter = base_external_thread_diameter - 2 * thread_depth;
 
 
@@ -190,6 +190,8 @@ module perforate_cylinder() {
     }
 }
 
+thread_inner_diameter = outer_diameter - 2 * thread_wall_thickness;
+
 module internal_threads() {
     // Internal threads on open end (top) using BOSL2 threaded_nut - intersected with cylinder
     translate([0, 0, cylinder_height - thread_height - epsilon])
@@ -264,7 +266,8 @@ module male_cap() {
 female_cap_base_diameter = 66;
 // Female cap needs internal threads to mate with cylinder's external threads
 // Internal thread diameter = base_external_thread_diameter + thread_gap for clearance
-female_cap_internal_thread_diameter = base_external_thread_diameter + thread_gap;
+// Adjusted so threaded cylinder matches main cylinder outer diameter
+female_cap_internal_thread_diameter = outer_diameter - 2*thread_wall_thickness;
 
 module maybe_shift_y(gate, distance) {
   if (gate < 0) {
@@ -327,18 +330,28 @@ module female_cap() {
 }
 
 
-translate([80,0,0])
-  male_cap();
-
-translate([-80,0,0])
-  female_cap();
-
-
-difference() {
-    union() {
-        main_cylinder();
-//color([0,0,1,0.5])
-        external_threads();
-        internal_threads();
-    }
+module central_cylinder() {
+  difference() {
+      union() {
+          main_cylinder();
+  //color([0,0,1,0.5])
+          external_threads();
+          internal_threads();
+      }
+  }
 }
+
+//translate([80,0,0])
+//  male_cap();
+//
+//translate([-80,0,0])
+//  female_cap();
+
+central_cylinder();
+
+translate([0,0,-15])
+% female_cap();
+
+
+
+
