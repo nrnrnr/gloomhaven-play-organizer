@@ -140,7 +140,7 @@ module main_cylinder() {
 
     
     // 2. External thread support section
-color([1,0,0,0.5])
+//color([1,0,0,0.5])
     translate([0, 0, thread_height - epsilon])
         hollow_cylinder(
             height = extra_bottom_support, 
@@ -149,7 +149,7 @@ color([1,0,0,0.5])
         );
     
     // 3. Main cylinder body
-%    translate([0, 0, thread_height])
+    translate([0, 0, thread_height])
         perforated_cylinder(
             height = cylinder_height - 2 * thread_height + epsilon,
             outer_d = outer_diameter,
@@ -337,7 +337,7 @@ translate([-80,0,0])
 difference() {
     union() {
         main_cylinder();
-color([0,0,1,0.5])
+//color([0,0,1,0.5])
         external_threads();
         internal_threads();
     }
