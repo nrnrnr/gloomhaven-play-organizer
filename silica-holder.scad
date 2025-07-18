@@ -13,7 +13,7 @@ wall_thickness = 1.8;   // sufficient for structural integrity
 
 thread_height = 11;  // height of threaded section
 thread_pitch = 3;   // distance between adjacent threads
-thread_wall_thickness = 2.4;  // thicker walls for threaded sections,
+thread_wall_thickness = 1.8;  // thicker walls for threaded sections,
                               // ensures structural integrity of those sections
 thread_gap = 0.2;   // clearance between male and female threads (guess)
 
@@ -39,6 +39,16 @@ rib_width = 2;            // ditto
 // Thread diameter - identical for all mating threads, clearance via $slop
 thread_diameter = outer_diameter - 2 * thread_wall_thickness;
 
+// Thread depth calculation for 60-degree threads
+//thread_depth = thread_pitch * sin(60) + 0.75;
+
+// Cone transition calculations
+cone_bottom_outer_d = thread_diameter - thread_depth;
+cone_bottom_inner_d = thread_diameter - 4*thread_wall_thickness;
+cone_top_outer_d = outer_diameter;
+cone_top_inner_d = outer_diameter - 2*wall_thickness;
+cone_height = (cone_top_outer_d - cone_bottom_outer_d) / 2;
+
 module hollow_cylinder(height, outer_d, thickness) {
     difference() {
         cylinder(h = height, d = outer_d);
@@ -46,6 +56,7 @@ module hollow_cylinder(height, outer_d, thickness) {
             cylinder(h = height + 2*epsilon, d = outer_d - 2*thickness);
     }
 }
+
 
 module rounded_cube_xy(size, radius) {
     // Handle both single value and vector size like cube()
@@ -146,20 +157,50 @@ module main_cylinder() {
    perforated_base(h = wall_thickness + epsilon, d = thread_diameter - 2*thread_wall_thickness,
                    id = thread_diameter - 4*thread_wall_thickness - 2);
 
+if (false) {
     
-    // 2. External thread support section
+    // 2. External thread support section with chamfered bottom
     translate([0, 0, thread_height - epsilon])
-        hollow_cylinder(
-            height = extra_bottom_support, 
-            outer_d = outer_diameter,
-            thickness = thread_wall_thickness + outer_diameter - 
-                        thread_diameter
-        );
+//        intersection() {
+//            hollow_cylinder(
+//                height = extra_bottom_support, 
+//                outer_d = outer_diameter,
+//                thickness = thread_wall_thickness + outer_diameter - 
+//                            thread_diameter
+//            );
+            // Chamfered cylinder to eliminate bottom overhang
+color([0,0,1,0.5])
+            cyl(
+                h = extra_bottom_support,
+                d = outer_diameter,
+                chamfer1 = 0.5,
+                anchor = BOTTOM
+            );
+//        }
     
+}
+
+    // 2. Cone transition to support external threads
+color([0,0,1,0.2])
+    translate([0, 0, thread_height - epsilon])
+        difference() {
+            cylinder(
+                h = cone_height + epsilon,
+                d1 = cone_bottom_outer_d,
+                d2 = cone_top_outer_d
+            );
+            translate([0, 0, -epsilon])
+                cylinder(
+                    h = cone_height + 3*epsilon,
+                    d1 = cone_bottom_inner_d,
+                    d2 = cone_top_inner_d
+                );
+        }
+
     // 3. Main cylinder body
-    translate([0, 0, thread_height])
+    translate([0, 0, thread_height + cone_height - epsilon])
         perforated_cylinder(
-            height = cylinder_height - 2 * thread_height + epsilon,
+            height = cylinder_height - 2 * thread_height - cone_height + 2*epsilon,
             outer_d = outer_diameter,
             thickness = wall_thickness
         );
