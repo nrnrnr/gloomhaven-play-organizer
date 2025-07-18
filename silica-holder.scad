@@ -11,7 +11,6 @@ cylinder_height = 67;   // width of a standard reel
 
 wall_thickness = 1.8;   // sufficient for structural integrity
 
-thread_depth = 1.2;     // depth of thread groove --- a bit of a guess
 thread_height = 11;  // height of threaded section
 thread_pitch = 3;   // distance between adjacent threads
 thread_wall_thickness = 2.4;  // thicker walls for threaded sections,
@@ -30,24 +29,15 @@ rib_width = 2;            // ditto
 // Structural parameters: outer_diameter and thread_wall_thickness
 // All thread diameters calculated to ensure proper mating
 
-// Female cap threads - primary calculation from structural parameters
-// Outer diameter ensures female cap threaded cylinder = outer_diameter
-female_cap_thread_outer_diameter = outer_diameter - 2 * thread_wall_thickness;
-female_cap_thread_inner_diameter = female_cap_thread_outer_diameter - 2 * thread_depth;
+// Near as I can tell, BOSL2 threads work as follows:
+//   threaded_rod() d  parameter is the outside diameter of the male threads
+//   threaded_nut() id parameter is the diameter of the female threads
+//                               used to mate with a threaded rod of the same
+//                               diameter.  The nut can be enlarged using $slop.
 
-// Main cylinder external threads (bottom) - sized to mate with female cap
-// Must be thread_gap smaller than female cap threads for clearance
-cylinder_external_thread_outer_diameter = female_cap_thread_outer_diameter - thread_gap;
-cylinder_external_thread_inner_diameter = cylinder_external_thread_outer_diameter - 2 * thread_depth;
 
-// Main cylinder base (solid bottom) - diameter inside the external threads
-base_diameter = cylinder_external_thread_inner_diameter;
-
-// Main cylinder internal threads (top opening) - matches female cap threads
-cylinder_internal_thread_outer_diameter = female_cap_thread_outer_diameter;
-cylinder_internal_thread_inner_diameter = 
-    cylinder_internal_thread_outer_diameter - 2 * thread_depth;
-
+// Thread diameter - identical for all mating threads, clearance via $slop
+thread_diameter = outer_diameter - 2 * thread_wall_thickness;
 
 module hollow_cylinder(height, outer_d, thickness) {
     difference() {
@@ -153,18 +143,17 @@ extra_bottom_support = 5;
 
 module main_cylinder() {
     // 1. Base (solid bottom)
-   perforated_base(h = wall_thickness + epsilon, d = base_diameter - thread_depth,
-                   id = cylinder_external_thread_inner_diameter -
-                          2 * thread_wall_thickness - 2);
+   perforated_base(h = wall_thickness + epsilon, d = thread_diameter - 2*thread_wall_thickness,
+                   id = thread_diameter - 4*thread_wall_thickness - 2);
 
     
     // 2. External thread support section
     translate([0, 0, thread_height - epsilon])
         hollow_cylinder(
             height = extra_bottom_support, 
-            outer_d = outer_diameter, //cylinder_external_thread_outer_diameter,
+            outer_d = outer_diameter,
             thickness = thread_wall_thickness + outer_diameter - 
-                        cylinder_external_thread_outer_diameter
+                        thread_diameter
         );
     
     // 3. Main cylinder body
@@ -215,11 +204,12 @@ module internal_threads() {
         intersection() {
             threaded_nut(
                 nutwidth=outer_diameter + 10,  // oversized hex nut for intersection
-                        id=cylinder_internal_thread_outer_diameter,
+                        id=thread_diameter,
                         h=thread_height + 2*epsilon,
                         pitch=thread_pitch,
                          blunt_start=false,
                          anchor=BOTTOM,
+                        $slop=thread_gap/2,
                         $fn=64);
             
             // Cylinder to limit the nut to our desired area
@@ -232,7 +222,7 @@ module external_threads() {
     // External threads on closed end (bottom) using BOSL2 - hollowed to match base
     // threaded_rod expects outer diameter
     difference() {
-        threaded_rod(d=cylinder_external_thread_outer_diameter, 
+        threaded_rod(d=thread_diameter, 
                     l=thread_height + epsilon, 
                     pitch=thread_pitch, 
                     internal=false,
@@ -242,7 +232,7 @@ module external_threads() {
         // Hollow out to match the cylinder it's mounted on
         translate([0, 0, -epsilon])
             cylinder(h=thread_height + 3*epsilon, 
-                    d=base_diameter - 2*thread_wall_thickness);
+                    d=thread_diameter - 4*thread_wall_thickness);
     }
 }
 
@@ -250,26 +240,20 @@ module external_threads() {
 
 male_cap_base_diameter = 66;
 
-// Male cap thread diameter calculation:
-// The cylinder's internal threads have ID = 
-// cylinder_internal_thread_inner_diameter + 2*thread_depth
-// For proper mating, the male cap's external threads should be slightly smaller
-// Male thread diameter = internal thread ID - thread_gap for clearance
-male_cap_thread_diameter = 
-    cylinder_internal_thread_inner_diameter + 2*thread_depth - thread_gap;
+// Male cap uses same thread diameter, clearance via $slop in cylinder internal threads
 
 module male_cap() {
     union() {
         // Solid base
 //        cylinder(h = wall_thickness, d = male_cap_base_diameter);
         perforated_base(male_cap_base_diameter,
-                        cylinder_external_thread_inner_diameter - 2 * thread_wall_thickness - 2);
+                        thread_diameter - 4 * thread_wall_thickness - 2);
         
         // Hollow male threads extending upward from base
         // threaded_rod expects outer diameter
         translate([0, 0, wall_thickness])
             difference() {
-                threaded_rod(d = male_cap_thread_diameter,
+                threaded_rod(d = thread_diameter,
                            l = thread_height,
                            pitch = thread_pitch,
                            internal = false,
@@ -279,7 +263,7 @@ module male_cap() {
                 // Hollow out with standard thread wall thickness
                 translate([0, 0, -epsilon])
                     cylinder(h = thread_height + 2*epsilon,
-                           d = male_cap_thread_diameter - 2*thread_wall_thickness);
+                           d = thread_diameter - 2*thread_wall_thickness);
             }
     }
 }
@@ -306,7 +290,7 @@ module female_cap() {
             height = wall_thickness,
             outer_d = female_cap_base_diameter,
             thickness = (female_cap_base_diameter - 
-                        female_cap_thread_outer_diameter - 
+                        thread_diameter - 
                         2*thread_wall_thickness) / 2
         );
         
@@ -349,19 +333,20 @@ module female_cap() {
         translate([0, 0, wall_thickness])
             intersection() {
                 threaded_nut(
-                    nutwidth = female_cap_thread_outer_diameter + 
+                    nutwidth = thread_diameter + 
                                2*thread_wall_thickness + 10,
-                           id = female_cap_thread_outer_diameter,
+                           id = thread_diameter,
                            h = thread_height,
                            pitch = thread_pitch,
                            blunt_start = false,
                            anchor = BOTTOM,
+                           $slop = thread_gap/2,
                            $fn = 64);
                 
                 // Cylinder to limit the nut to our desired area
                 cylinder(
                     h = thread_height,
-                    d = female_cap_thread_outer_diameter + 
+                    d = thread_diameter + 
                         2*thread_wall_thickness + epsilon
                 );
             }
@@ -380,16 +365,17 @@ module central_cylinder() {
   }
 }
 
-//translate([80,0,0])
-//  male_cap();
-//
-//translate([-80,0,0])
-//  female_cap();
 
 central_cylinder();
 
-translate([0,0,-15])
-% female_cap();
+translate([80,0,0])
+//translate([0,0,-wall_thickness])
+  female_cap();
+
+translate([-80,0,0])
+//translate([0,0,cylinder_height+wall_thickness])
+//  rotate([180,0,0])
+    male_cap();
 
 
 
