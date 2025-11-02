@@ -25,6 +25,7 @@
 //        - Condition tokens
 //
 
+include <BOSL2/std.scad>
 
 
 $fa = 2;    // minimum angle (fine resolution)
@@ -58,9 +59,11 @@ eventcardwidth = 64;    // confirmed
 numberthickness = 27; // number tokens
 letterthickness = 23; // letter tokens
 
-cityeventthickness = 27;
-roadeventthickness = 22;
-battlegoalthickness = 26.5;
+edition = 2;
+
+cityeventthickness = edition == 1 ? 27 : 33; // 32.6 measured
+roadeventthickness = edition == 1 ? 22 : 26;  // 25.6 measured
+battlegoalthickness = edition == 1 ? 26.5 : 20; // 19.6 measured
 amdthickness = 12;  // monster attack-modifier deck
 minusonethickness = 10; // measured sleeved; could squeeze down to 9
 
@@ -69,13 +72,36 @@ minusonethickness = 10; // measured sleeved; could squeeze down to 9
 ///
 ///  Utility functions
 
-module pirata(s,size=8) {
+module pirata_one(s,size=8, valign="baseline") {
   // place 2D text with default parameters
   if (add_text) {
-    text(s, font = "Pirata One", halign = "center", size=size, valign="baseline");
+    text(s, font = "Pirata One", halign = "center", size=size, valign=valign);
   }
 }
 
+module pirata_two(line1, line2, size = 10, spacing, valign="baseline") {
+    // Estimate total height
+    spacing = is_undef(spacing) ? 0.2 * size : spacing;
+    shift = size/2 + spacing;
+
+    translate([0, shift, 0])
+      pirata(line1, size=size, valign=valign);
+    translate([0, -shift, 0])
+      pirata(line2, size=size, valign=valign);
+}
+
+module pirata(s,size=8,valign="baseline") {
+  if (add_text) {
+    strings = str_split(s, "\n");
+//    echo(s);
+//    echo(strings);
+    if (len(strings) == 1) {
+      pirata_one(s, size=size, valign=valign);
+    } else {
+      pirata_two(strings[0], strings[1], size=size, valign=valign);
+    }
+  }
+}
 
 
 
@@ -343,14 +369,20 @@ interiorcardsep =     // thickness of wall between card wells
    2 * (eventcardwidth + smallcardwidth + 2 * cardleeway)) / 3.0;
 
 
-separator_thickness = 2; // separates active/inactive events;
+separator_thickness =   // separates active/inactive events;
                          // also -1 from monster AMD
+
+  edition == 1 ? 2 : 1.2;
 
 numberlift = 5; // room for finger underneath, could be 4
 ceiling = 5; // space between highest stack and top of tray, could be smaller
 uppertrayclearance = ceiling; // space between top of stack and rim; could be 4
 
-smallthickness = amdthickness + minusonethickness; // these cards are stacked
+smallthickness =
+  edition == 1
+    ? amdthickness + minusonethickness // these cards are stacked
+    : 2 * amdthickness + minusonethickness + separator_thickness; 
+                                        
 
 thicknesses = // vertical space allowance for every element of upper tray
   [ numberthickness + numberlift
@@ -701,12 +733,15 @@ module upper_tray() {
 }
 
 separator_leeway = 4; // 2 times space around separator
-new_separator_thickness = 5;
+//new_separator_thickness = 5; // first edition, too thick for 2nd
+new_separator_thickness = 1.2;
 separator_radius = 9.5;
 module card_separator(width=eventcardwidth,
                       height=eventcardheight,
                       front=cardsfront,
                       wrap=wrapwidthevents,
+                      toptext="Active",
+                      bottomtext="Inactive",
                       showtext=true) {
   fillet = 5;
   smallfillet = 3;
@@ -732,10 +767,13 @@ module card_separator(width=eventcardwidth,
         if (showtext) {
           translate([0,height/2,new_separator_thickness-default_label_thickness])
           linear_extrude(default_label_thickness+2*epsilon)
-            pirata("Active");
+            pirata(toptext,size=9.5,valign="center");
           translate([0,height/2,-epsilon])
+          mirror([1,0,0])
           linear_extrude(default_label_thickness+epsilon)
-            pirata("Inactive"); // TODO this is mirror writing!
+            pirata(bottomtext,size=10,valign="center");
+//          translate([0,height/2,new_separator_thickness-default_label_thickness])
+//            color([0,0,1]) cylinder(h=5,r=1);
         }
       }
 
@@ -801,12 +839,12 @@ module overall_cover () {
     union () {
         translate([-coinsep,0,0]) cube([fullwidth,fulllength,overallcoverthickness]);
         // ceilings measured with caliper depth, so (to a degree) compressed
-        cityeventceiling = 6;
-        roadeventceiling = 10.4;
+        cityeventceiling = edition == 1 ? 6 : 3.46;
+        roadeventceiling = edition == 1 ? 10.4 : 10.7;
         numberceiling = 6.4;
         letterceiling = 7.0;
-        battleceiling = 11.1;
-        amdceiling = 8.3;
+        battleceiling = edition == 1 ? 11.1 : 17.0;
+        amdceiling = edition == 1 ? 8.3 : 11.8;
 
         rearcardceiling = 12.15;
         
@@ -1051,5 +1089,19 @@ module sleeve_test() {
 
 //exploded_diagram(deltaz=5,deltay=5,contents=false);
 
-upper_tray();
+//upper_tray();
+
+
+if (0) {
+  translate([70,0,0]) card_separator();
+  translate([140,0,0]) card_separator();
+
+  card_separator(width=sleevedsmallwidth, height=sleevedsmallheight, front=sleevedcardsfront, wrap=wrapwidthsmall, toptext="Monster\nDeck", bottomtext="Ally\nDeck");
+  translate([0,1.2*eventcardheight,0])
+  card_separator(width=sleevedsmallwidth, height=sleevedsmallheight, front=sleevedcardsfront, wrap=wrapwidthsmall, toptext="Ally\nDeck", bottomtext="-1\nPenalty");
+}
+
+if (1) {
+  overall_cover();
+}
 
