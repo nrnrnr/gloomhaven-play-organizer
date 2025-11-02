@@ -8,7 +8,7 @@ pi = 3.1415926535;
 
 layer = 0.2;
 
-width = 3; // temporary; eventually to be 60
+width = 60; // temporary; eventually to be 60
 
 function radians(deg) = deg * pi / 180;
 
@@ -82,15 +82,15 @@ translate([thickness - x1, h1 + d1 - y, 0])
   linear_extrude(height=width)
     polygon(points=[ [x2+epsilon, front_triangle_top]
                    , [x2+epsilon, y - (h2 + d2)]
-                   , [x2-1.7, (front_triangle_top + y - (h2 + d2)) / 2]
+                   , [x2-1.2, (front_triangle_top + y - (h2 + d2)) / 2]
                    ]);
                      
 
   translate([x2 - epsilon, y - (h2 + d2), 0])
     cube([thickness+epsilon, d2 + h2, width]);
 
-//  translate([(x1+x2)/2 - mountx/2, y - epsilon, 0])
-//    cube([mountx, mounty, thickness]);
+  translate([(x1+x2)/2 - mountx/2, y - epsilon, 0])
+    cube([mountx, mounty, width]);
 
   }
 
