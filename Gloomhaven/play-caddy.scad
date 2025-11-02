@@ -59,8 +59,6 @@ eventcardwidth = 64;    // confirmed
 numberthickness = 27; // number tokens
 letterthickness = 23; // letter tokens
 
-edition = 2;
-
 cityeventthickness = edition == 1 ? 27 : 33; // 32.6 measured
 roadeventthickness = edition == 1 ? 22 : 26;  // 25.6 measured
 battlegoalthickness = edition == 1 ? 26.5 : 20; // 19.6 measured
@@ -322,8 +320,18 @@ module lower_tray () {
           for (i=[0:1:7]) {
             token_drawer(i);
           }
-          for (i=[0:1:2]) {
-            coin_drawer(i);
+          if (edition == 1) {
+            for (i=[0:1:2]) {
+              coin_drawer(i);
+            }
+          } else {
+            translate([0,tokenlength,0])
+              drawer(w=tokenwidth,h=coinheight,l=coinlength,sep=coinsep,theta=45,floor_y_shift=2*coinlength+30,floor=floor,insert=drawer_inserts);
+            translate([1 * (tokenwidth+tokensep),tokenlength,0])
+              drawer(w=tokenwidth,h=coinheight,l=coinlength,sep=coinsep,theta=45,floor_y_shift=2*coinlength+30,floor=floor,insert=drawer_inserts);
+            translate([2 * (tokenwidth+tokensep),tokenlength,0])
+              drawer(w=fullwidth-(2*tokenwidth+5*tokensep+coinwidth),h=coinheight,l=coinlength,sep=coinsep,theta=45,floor_y_shift=2*coinlength+30,floor=floor,insert=drawer_inserts);
+            coin_drawer(2);
           }
         }
         for (i=[0:1:2]) {
@@ -733,8 +741,7 @@ module upper_tray() {
 }
 
 separator_leeway = 4; // 2 times space around separator
-//new_separator_thickness = 5; // first edition, too thick for 2nd
-new_separator_thickness = 1.2;
+new_separator_thickness = edition == 1 ? 5 : 1.2;
 separator_radius = 9.5;
 module card_separator(width=eventcardwidth,
                       height=eventcardheight,
@@ -926,13 +933,15 @@ module end_band() {
   //   // side band all the way across has to flex, so not a great plan
   //translate([(height-width/2)/2,-epsilon,0])
   //  cube([width/2,bandlength+2*epsilon,floor]);
-  stop_thickness = 1;
-  translate([height/2,0,stop_thickness/2])
-    rotate([0,0,90])
-    half_cylinder(r=height/5,h=stop_thickness);
-  translate([height/2,bandlength,stop_thickness/2])
-    rotate([0,0,-90])
-    half_cylinder(r=height/5,h=stop_thickness);
+  if (0) { // stops were not actually a good plan
+    stop_thickness = 1;
+    translate([height/2,0,stop_thickness/2])
+      rotate([0,0,90])
+      half_cylinder(r=height/5,h=stop_thickness);
+    translate([height/2,bandlength,stop_thickness/2])
+      rotate([0,0,-90])
+      half_cylinder(r=height/5,h=stop_thickness);
+  }
 }  
   // city events
 
@@ -1101,7 +1110,7 @@ if (0) {
   card_separator(width=sleevedsmallwidth, height=sleevedsmallheight, front=sleevedcardsfront, wrap=wrapwidthsmall, toptext="Ally\nDeck", bottomtext="-1\nPenalty");
 }
 
-if (1) {
+if (0) {
   overall_cover();
 }
 
