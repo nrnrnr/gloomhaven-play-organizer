@@ -56,10 +56,16 @@ module holder() {
 
   difference() {
     union () {
-      cube_filleted_columns(full_width,
-                            full_height,
-                            full_thickness,
-                            6);
+      if (false) { // rounded corners
+        cube_filleted_columns(full_width,
+                              full_height,
+                              full_thickness,
+                              6);
+      } else {
+        cuboid([full_width, full_height, full_thickness],
+               p1=[0,0,0],
+               chamfer=2, edges=BOT);
+      }
       // peg
       translate([peg_x, peg_y, 0])
         //    cylinder(d = 3 / 16 * inch, h = full_thickness + 3);
@@ -85,12 +91,73 @@ module holder() {
 button_thickness = 3*layer_height;
 
 module button() {
-  translate([plate_width/2, plate_height/2, 0])
-   union() {
-    cyl(d = peg_diameter, h = button_thickness + 3 + groove_depth - 0.6,
-        chamfer2 = 0.8, anchor=DOWN);
-    cyl(d=30, h = button_thickness, anchor=DOWN, chamfer1=button_thickness);
+  cyl(d = peg_diameter, h = button_thickness + 3 + groove_depth - 0.6,
+      chamfer2 = 0.8, anchor=DOWN);
+  cyl(d=30, h = button_thickness, anchor=DOWN, chamfer1=button_thickness);
+}
+
+
+
+mul=1.0;
+
+module test_round_chamfer() {
+
+difference() {
+  union() {
+    difference() {
+      cuboid([20,20,10], chamfer=2.5, edges=BOT);
+
+    //  translate([7.5,-7.5,-0.5])
+    //  cuboid([5+epsilon,5+epsilon,15]);
+
+       translate([0,0,-5.5])
+      linear_extrude(11) {
+        polygon(points=[[10+epsilon, -(10-(mul*2.5))], [10+epsilon,-10-epsilon], [10-mul*2.5,-10-epsilon]]);
+      }
+    //  translate([10-2.5,-7.5,-0.5])
+    //  cyl(r=2.5,h=11);
+        
+    }
+  translate([10-1*2.5,-(10-1*2.5),0])
+    cyl(r=2.5,h=10,rounding1=2.5);
+  }
+      translate([-10.5,0,5])
+      rotate([0,90,0])
+      linear_extrude(21) {
+        polygon(points=[[10+epsilon, -(10-(mul*2.5))], [10+epsilon,-10-epsilon], [10-mul*2.5,-10-epsilon]]);
+      }
+
+      translate([0,-10.5,5])
+      rotate([0,90,90])
+      linear_extrude(21) {
+        polygon(points=[[10+epsilon, -(10-(mul*2.5))], [10+epsilon,-10-epsilon], [10-mul*2.5,-10-epsilon]]);
+      }
+
+
+}
+
+}
+
+
+//  translate([-10.5,0,5])
+//  rotate([0,90,0])
+//  linear_extrude(21) {
+//    polygon(points=[[10+epsilon, -(10-(mul*2.5))], [10+epsilon,-10-epsilon], [10-mul*2.5,-10-epsilon]]);
+//  }
+//  translate([10-2.5,-7.5,-0.5])
+
+
+module slot_test() {
+  intersection() {
+    holder();
+    cuboid([10,20,20], p1=[-1, 52, -1]);
   }
 }
 
-button();
+//holder();
+
+slot_test();
+
+
+translate([plate_width/2, plate_height/2, 0])
+  button();
