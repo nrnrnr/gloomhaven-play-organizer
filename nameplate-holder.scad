@@ -12,6 +12,8 @@ plate_height = 62.6; // 2.46in, nominal height 62.8mm
 plate_thickness = 3;
 engraving_width = 100.4; // nominal 101.6
 
+wood_thickness = 3;
+
 inch = 25.4;
 
 epsilon = 0.001;
@@ -47,8 +49,8 @@ full_height = plate_height + 2 * bezel_width;
 
 peg_x = (bezel_width + (engraving_width - plate_width)/2)/2;
 peg_y = 30;
-peg_slop = 0.4;
-peg_diameter = 3/16 * inch - peg_slop;
+peg_slop = 0.1;
+peg_diameter = 3/16 * inch - peg_slop; // in PETG, it's 3/16 minus 0.5mm
 groove_diameter = peg_diameter + 2 * peg_slop;
 groove_depth = full_thickness / 3;
 
@@ -68,8 +70,7 @@ module holder() {
       }
       // peg
       translate([peg_x, peg_y, 0])
-        //    cylinder(d = 3 / 16 * inch, h = full_thickness + 3);
-        cyl(d = peg_diameter - peg_slop, h = full_thickness + 3, chamfer2 = 0.8, anchor=DOWN);
+        cyl(d = peg_diameter - peg_slop, h = full_thickness + wood_thickness, chamfer2 = 0.8, anchor=DOWN);
     }
     // niche for plate
     translate([(full_width - plate_width) / 2 - slop,
