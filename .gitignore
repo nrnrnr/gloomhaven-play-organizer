@@ -6,3 +6,4 @@
 *.log
 *.gcode
 *.bgcode
+minis/*.stl

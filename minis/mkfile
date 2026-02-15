@@ -1,0 +1,4 @@
+all:V: jelly.stl tank.stl
+
+&.stl: jelly-block.scad
+	openscad-nightly -o $target -D torender='"'$stem'"' $prereq
