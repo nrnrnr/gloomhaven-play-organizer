@@ -12,8 +12,6 @@ plate_height = 62.6; // 2.46in, nominal height 62.8mm
 plate_thickness = 3;
 engraving_width = 100.4; // nominal 101.6
 
-wood_thickness = 3;
-
 inch = 25.4;
 
 epsilon = 0.001;
@@ -21,6 +19,8 @@ epsilon = 0.001;
 slop = 0.3;
 
 bezel_width = 12;
+vertical_backing_width = bezel_width - (plate_width - engraving_width)/2;
+
 
 module cube_filleted_columns(x,y,z,r) {
   if (is_list(x) && is_undef(z)) {
@@ -47,12 +47,19 @@ full_thickness = plate_thickness + 2;
 full_width = engraving_width + 2 * bezel_width;
 full_height = plate_height + 2 * bezel_width;
 
-peg_x = (bezel_width + (engraving_width - plate_width)/2)/2;
-peg_y = 30;
-peg_slop = 0.1;
-peg_diameter = 3/16 * inch - peg_slop; // in PETG, it's 3/16 minus 0.5mm
-groove_diameter = peg_diameter + 2 * peg_slop;
-groove_depth = full_thickness / 3;
+groove_depth=1.6;
+groove_width = 2 * groove_depth;
+
+module groove(length) {
+  translate([0,0,full_thickness+epsilon])
+  linear_sweep([[groove_depth,0], [0,groove_depth], [-groove_depth,0]], length,
+               spin=-90, orient=RIGHT);
+}
+
+module gluepot(x=0, y=0) {
+  translate([x, y, full_thickness+epsilon-groove_depth])
+  cylinder(d=2 * groove_width, h=groove_width);
+}
 
 module holder() {
 
@@ -68,9 +75,6 @@ module holder() {
                p1=[0,0,0],
                chamfer=2, edges=BOT);
       }
-      // peg
-      translate([peg_x, peg_y, 0])
-        cyl(d = peg_diameter - peg_slop, h = full_thickness + wood_thickness, chamfer2 = 0.8, anchor=DOWN);
     }
     // niche for plate
     translate([(full_width - plate_width) / 2 - slop,
@@ -83,20 +87,26 @@ module holder() {
     translate([bezel_width, bezel_width, -epsilon])
       cube([engraving_width, plate_height + 20, full_thickness + 2 * epsilon]);
 
-    // registration groove
-    translate([peg_x - groove_diameter / 2, peg_y + 1*inch, full_thickness - groove_depth + epsilon])
-      cube([groove_diameter, 3 * peg_diameter, groove_depth]);
+    // glue grooves
+    translate([(vertical_backing_width-groove_width)/2, bezel_width/2, 0])
+      groove(full_width-vertical_backing_width+groove_width);
+    translate([vertical_backing_width/2, (bezel_width-groove_width)/2, 0])
+      rotate([0,0,90])
+      groove(full_height-bezel_width+groove_width);
+    translate([full_width-(vertical_backing_width/2), (bezel_width-groove_width)/2, 0])
+      rotate([0,0,90])
+      groove(full_height-bezel_width+groove_width);
+
+    // glue pots
+    for (i=[18:22:full_width-10]) {
+      gluepot(i, bezel_width/2);
+    }
+    for (i=[20:20:full_height-5]) {
+      gluepot(vertical_backing_width/2,i);
+      gluepot(full_width-vertical_backing_width/2,i);
+    }
   }
 }
-
-button_thickness = 3*layer_height;
-
-module button() {
-  cyl(d = peg_diameter, h = button_thickness + 3 + groove_depth - 0.6,
-      chamfer2 = 0.8, anchor=DOWN);
-  cyl(d=30, h = button_thickness, anchor=DOWN, chamfer1=button_thickness);
-}
-
 
 
 mul=1.0;
@@ -134,31 +144,48 @@ difference() {
         polygon(points=[[10+epsilon, -(10-(mul*2.5))], [10+epsilon,-10-epsilon], [10-mul*2.5,-10-epsilon]]);
       }
 
-
 }
 
 }
 
 
-//  translate([-10.5,0,5])
-//  rotate([0,90,0])
-//  linear_extrude(21) {
-//    polygon(points=[[10+epsilon, -(10-(mul*2.5))], [10+epsilon,-10-epsilon], [10-mul*2.5,-10-epsilon]]);
-//  }
-//  translate([10-2.5,-7.5,-0.5])
+top_bezel_slop=0.2;
 
-
-module slot_test() {
-  intersection() {
-    holder();
-    cuboid([10,20,20], p1=[-1, 52, -1]);
+module top_bezel() {
+  diff()
+    cuboid([plate_width, bezel_width, full_thickness],
+           p1=[0,0,0],
+           chamfer=2, edges=TOP+BACK) {
+    tag("remove") {
+      position(TOP+LEFT)
+        cuboid([(plate_width-engraving_width)/2+top_bezel_slop,
+                full_height - plate_height - bezel_width + epsilon,
+                full_thickness-plate_thickness+top_bezel_slop],
+               anchor=TOP+LEFT);
+      position(TOP+RIGHT)
+        cuboid([(plate_width-engraving_width)/2+top_bezel_slop,
+                full_height - plate_height - bezel_width + epsilon,
+                full_thickness-plate_thickness+top_bezel_slop],
+               anchor=TOP+RIGHT);
+    }
   }
 }
 
-//holder();
 
-slot_test();
+module assembly() {
+
+  holder();
+
+  % translate([full_width - (full_width - plate_width)/2, full_height - bezel_width, full_thickness])
+    rotate([0,180,0])
+    top_bezel();
+}
+
+holder();
+
+translate([bezel_width-(plate_width-engraving_width)/2, -bezel_width-2, 0])
+  top_bezel();
 
 
-translate([plate_width/2, plate_height/2, 0])
-  button();
+
+
