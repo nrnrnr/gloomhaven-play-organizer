@@ -13,8 +13,9 @@ wall_thickness = 1.8;   // sufficient for structural integrity
 
 thread_height = 11;  // height of threaded section
 thread_pitch = 3;   // distance between adjacent threads
-thread_wall_thickness = 1.8;  // thicker walls for threaded sections,
+thread_wall_thickness = 2.4;  // thicker walls for threaded sections,
                               // ensures structural integrity of those sections
+   // 1.8 left female wall awfully thin
 thread_gap = 0.2;   // clearance between male and female threads (guess)
 
 cylinder_inner_diameter = outer_diameter - 2 * wall_thickness;
@@ -40,7 +41,7 @@ rib_width = 2;            // ditto
 thread_diameter = outer_diameter - 2 * thread_wall_thickness;
 
 // Thread depth calculation for 60-degree threads
-//thread_depth = thread_pitch * sin(60) + 0.75;
+thread_depth = thread_pitch * sin(60) + 0.75;
 
 // Cone transition calculations
 cone_bottom_outer_d = thread_diameter - thread_depth;
@@ -181,7 +182,7 @@ color([0,0,1,0.5])
 }
 
     // 2. Cone transition to support external threads
-color([0,0,1,0.2])
+//color([0,0,1,0.2])
     translate([0, 0, thread_height - epsilon])
         difference() {
             cylinder(
@@ -324,6 +325,9 @@ module maybe_shift_y(gate, distance) {
 module female_cap() {
     tab_width = 19;     // tangential width
     tab_extension = 6;  // radial extension beyond base
+
+    nut_outer_diameter = // diameter of collar around threads
+      thread_diameter + 2*thread_wall_thickness;
     
     union() {
         // Hollow base - completely open from threads inward
@@ -331,8 +335,8 @@ module female_cap() {
             height = wall_thickness,
             outer_d = female_cap_base_diameter,
             thickness = (female_cap_base_diameter - 
-                        thread_diameter - 
-                        2*thread_wall_thickness) / 2
+                         nut_outer_diameter +
+                         epsilon) / 2
         );
         
         // Four tabs at compass directions with rounded corners
@@ -371,13 +375,12 @@ module female_cap() {
         }
         
         // Internal threads using threaded_nut
-        translate([0, 0, wall_thickness])
             intersection() {
                 threaded_nut(
                     nutwidth = thread_diameter + 
                                2*thread_wall_thickness + 10,
                            id = thread_diameter,
-                           h = thread_height,
+                           h = thread_height + wall_thickness,
                            pitch = thread_pitch,
                            blunt_start = false,
                            anchor = BOTTOM,
@@ -387,8 +390,7 @@ module female_cap() {
                 // Cylinder to limit the nut to our desired area
                 cylinder(
                     h = thread_height,
-                    d = thread_diameter + 
-                        2*thread_wall_thickness + epsilon
+                    d = nut_outer_diameter
                 );
             }
     }
@@ -417,7 +419,3 @@ translate([-80,0,0])
 //translate([0,0,cylinder_height+wall_thickness])
 //  rotate([180,0,0])
     male_cap();
-
-
-
-
