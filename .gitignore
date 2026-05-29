@@ -7,3 +7,4 @@
 *.gcode
 *.bgcode
 minis/*.stl
+/*.stl
