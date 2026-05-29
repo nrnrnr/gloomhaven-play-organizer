@@ -100,4 +100,4 @@ test_sedated = [
 // Uncomment one to preview:
 //viscous_cuboid([50, 50], 8, test_gentle);
 //viscous_cuboid([50, 50], 8, test_choppy);
-viscous_cuboid([50, 50], 8, test_sedated, resolution=0.5);
+//viscous_cuboid([50, 50], 8, test_sedated, resolution=0.5);
