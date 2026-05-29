@@ -13,11 +13,17 @@ module rounded_ring(d, w, angle) {
     circle(d = w);
 }
 
+
 tolerance = 0.1;
 hose_diameter = 5.05 + tolerance;
 thickness = 2;
 gripper_angle = 60;
   delta_y = hose_diameter + 2 * thickness - 0.2; // distance between grippers
+
+// With toletance 0.1, total was 5.15.  Actual diameter in PETG 5.07.
+// So PETG probably needs tolerance 0.15 (that's from two overlaps,
+// one on each side).
+
 
 module gripper() {
   rounded_ring(d = hose_diameter, w = thickness, angle = gripper_angle);
