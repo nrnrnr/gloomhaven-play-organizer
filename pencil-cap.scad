@@ -73,9 +73,28 @@ module finned_cylinder(d1, d2, h, thickness) { // d2 is pure fiction
 //finned_cylinder(5.9, 6.86+0.3, 11.4, 0.4);
 
 
+module key() {
+  cube([2.4, 5, 5.4], anchor=TOP+FRONT); // x should be 1.8, but make larger
+                                         // so tiny weird bits don't stick out
+}
+
+
+
 intersection() {
-  finned_cylinder(5.6, 6.86+0.3, 11.4, 0.4);
-  cyl(h=11.4, d = 6.86+0.3, anchor= BOTTOM, chamfer2 = 1.2);
+  waist = (6.86+0.3-5.6)/2;
+  difference () {
+    finned_cylinder(5.6, 6.86+0.3, 15.4, 0.4);
+    
+    translate([0, (6.86+0.3)/2 - 1.8, 15.4+ epsilon])
+      key();
+
+
+
+    rotate_extrude() {
+      polygon(cumsum([[(6.86+0.3)/2 + 10 * epsilon,3.5], [-waist, waist], [waist, waist]]));
+    }
+  }
+  cyl(h=15.4, d = 6.86+0.3, anchor= BOTTOM, chamfer2 = 1.2);
 }
 
 
