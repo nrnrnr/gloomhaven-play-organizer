@@ -9,10 +9,10 @@ epsilon = 0.001;
 side = 33; // 10% increase from 30mm
 height = 2.8;
 overhang_angle = 45;
-overhang_block_width = 7;
+overhang_block_width = 5.5;
 front_back_width = 1.2;
 
-dent_delta = [side/2 -height * cos(overhang_angle)-3, side/2-7];
+dent_delta = [side/2 -height * cos(overhang_angle)-1.5, side/2-7];
 
 
 font = "Beringas Block Military Stencil";
@@ -21,6 +21,8 @@ depth = 0.8; // depth of floor
 
 notch_height = height - 4 * layer_height;
 notch_depth = notch_height / 3;
+
+four_corners = [[1,1,1],[1,-1,1],[-1,-1,1],[-1,1,1]];
 
 module dent() {
   w = 1.4;
@@ -46,56 +48,71 @@ module notch() { // for top
 }
   
 
+//  module number(n="1") {
+//    delta = dent_delta;
+//  
+//    difference() {
+//      cuboid([side,side,height],chamfer=height,edges=[BOTTOM+LEFT,BOTTOM+RIGHT],anchor=BOTTOM);
+//      translate([0,0,depth])
+//        cuboid([side-2*overhang_block_width, side - 2*front_back_width, height - depth + epsilon],
+//               chamfer=height-depth+epsilon,edges=[BOTTOM+LEFT,BOTTOM+RIGHT],anchor=BOTTOM);
+//      translate([delta.x,delta.y, -epsilon])
+//        dent();
+//      translate([delta.x,-delta.y, -epsilon])
+//        dent();
+//      translate([-delta.x,delta.y, -epsilon])
+//        dent();
+//      translate([-delta.x,-delta.y, -epsilon])
+//        dent();
+//  
+//      notch();
+//  
+//      translate([0,0,-depth/2])
+//        linear_extrude(2*height)
+//        text(n, font=font, size=side - 2 * front_back_width, halign = "center",valign="center");
+//    }
+//  
+//    translate([delta.x,delta.y, height-2*layer_height])
+//      dent();
+//    translate([delta.x,-delta.y, height-2*layer_height])
+//      dent();
+//    translate([-delta.x,delta.y, height-2*layer_height])
+//      dent();
+//    translate([-delta.x,-delta.y, height-2*layer_height])
+//      dent();
+//  }
+
 module number(n="1") {
   delta = dent_delta;
+  inset = 0.5 * height; // less sharp than a true chamfer
 
   difference() {
-    cuboid([side,side,height],chamfer=height,edges=[BOTTOM+LEFT,BOTTOM+RIGHT],anchor=BOTTOM);
+    translate([0,side/2,0]) // basic block, a partly chamfered cube
+      rotate([90,0,0])
+      linear_extrude(side) { // y dimension
+      polygon(cumsum([[-side/2,0], [side, 0], [-inset, height], [2*inset - side, 0]]));
+    }
     translate([0,0,depth])
       cuboid([side-2*overhang_block_width, side - 2*front_back_width, height - depth + epsilon],
-             chamfer=height-depth+epsilon,edges=[BOTTOM+LEFT,BOTTOM+RIGHT],anchor=BOTTOM);
-    translate([delta.x,delta.y, -epsilon])
-      dent();
-    translate([delta.x,-delta.y, -epsilon])
-      dent();
-    translate([-delta.x,delta.y, -epsilon])
-      dent();
-    translate([-delta.x,-delta.y, -epsilon])
-      dent();
+             anchor=BOTTOM);
+    for (v = four_corners) {
+      translate(v_mul(v, [delta.x,delta.y, -epsilon]))
+        dent();
+    }
 
     notch();
 
-
     translate([0,0,-depth/2])
       linear_extrude(2*height)
-      text(n, font=font, size=side - 2 * front_back_width, halign = "center",valign="center");
-
-
-
+      text(n, font=font, size=side - 2 * front_back_width - 4, halign = "center",valign="center");
   }
 
-
-  
-    translate([delta.x,delta.y, height-2*layer_height])
+  for (v = four_corners) {
+    translate(v_mul(v, [delta.x,delta.y, height-2*layer_height]))
       dent();
-    translate([delta.x,-delta.y, height-2*layer_height])
-      dent();
-    translate([-delta.x,delta.y, height-2*layer_height])
-      dent();
-    translate([-delta.x,-delta.y, height-2*layer_height])
-      dent();
-
-
-  
+  }
 }
 
-//for (i=[0:4]) {
-//  translate([i * (side+3),0,0]) number(str(i));
-//}
-//for (i=[0:4]) {
-//  translate([i * (side+3),side+3,0]) number(str(i+5));
-//}
-////number("7");
 
 module numbers(ns) {
   n = len(ns);
@@ -114,13 +131,14 @@ module numbers(ns) {
 spring_clearance = 1.5;
 spring_thickness = 1.0;
 spring_length = side/2 - 2;
+spring_travel = spring_clearance + spring_thickness;
 
 color_patch_thickness = 2 * layer_height;
 
 niche3d = [ side+0.10 // clearance
           , side+spring_thickness+notch_depth+0.05
           , height + 3 * layer_height // top clearance
-                   + color_patch_thickness // color patch
+//                   + color_patch_thickness // color patch
           ];
 
 
@@ -142,6 +160,16 @@ module color_slot() {
     polygon(cumsum([[0,0],[d,0],[0,2*layer_height],[-d,d*sin(35)]]));
 }
 
+
+
+module color_block() {
+  cuboid([ side - 2 * overhang_block_width - 2
+         , side - 2 * front_back_width - spring_travel + 0.5 // -1 spitball
+         , niche3d.z - layer_height - depth // layer height spitballing
+         ], anchor=BOTTOM);
+}
+
+
 module stand() {
 
   difference() {
@@ -151,18 +179,24 @@ module stand() {
         translate([0,0,outer.z+epsilon-niche3d.z])
           cuboid(niche3d, anchor=BOTTOM);
       }
-      translate([outer.x/2,0,outer.z-niche3d.z])
-        cuboid([(outer.x-color_patch_3d.x)/2,outer.y,color_patch_thickness],anchor=RIGHT+BOTTOM);
-      translate([-outer.x/2,0,outer.z-niche3d.z])
-        cuboid([(outer.x-color_patch_3d.x)/2,outer.y,color_patch_thickness],anchor=LEFT+BOTTOM);
+//      translate([outer.x/2,0,outer.z-niche3d.z])
+//        cuboid([(outer.x-color_patch_3d.x)/2,outer.y,color_patch_thickness],anchor=RIGHT+BOTTOM);
+//      translate([-outer.x/2,0,outer.z-niche3d.z])
+//        cuboid([(outer.x-color_patch_3d.x)/2,outer.y,color_patch_thickness],anchor=LEFT+BOTTOM);
     }
-    translate([0,outer.y/2-walls-epsilon,outer.z-niche3d.z])
-      color_slot();
+//    translate([0,outer.y/2-walls-epsilon,outer.z-niche3d.z])
+//      color_slot();
     translate([side/2+7,0,0])
       cylinder(d=25,h=3*outer.z,anchor=CENTER);
     translate([-(side/2+7),0,0])
       cylinder(d=25,h=3*outer.z,anchor=CENTER);
   }
+
+  // color block
+  translate([0,0,outer.z - niche3d.z])
+    color_block();
+  
+
 
   // springs
 
@@ -178,6 +212,9 @@ module stand() {
   // engagement with notch
   translate([0,outer.y/2-side/2-walls+0.3,outer.z-niche3d.z+color_patch_thickness])
     notch();
+
+  
+
 }
 
 
@@ -209,5 +246,16 @@ module patches(n=10) {
 
 
           
-numbers("01112223");
+//number("2");
+
+//stand();
+
+ translate([0,1,0])
+  translate([0,0,outer.z-height])
+   translate([0,0,height])
+    mirror([0,0,1])
+    number("0");
+
+//numbers("0123456789");
+//numbers("01112223");
 // 3345");
