@@ -98,9 +98,15 @@ module number(n="1") {
 ////number("7");
 
 module numbers(ns) {
-  for (i = [0 : len(ns)-1])
-    translate([i * (side+3), 0, 0])
-      number(str(ns[i]));
+  n = len(ns);
+  for (i=[0:ceil(n/5)-1]) {
+    for (j=[0:4]) {
+      if (5 * i + j < n) {
+        translate([j*(side + 5), i*(side + 5), 0])
+          number(str(ns[5*i + j]));
+      }
+    }
+  }
 }
 
 //numbers([2,4]);
@@ -111,17 +117,21 @@ spring_length = side/2 - 2;
 
 color_patch_thickness = 2 * layer_height;
 
-niche3d = [ side+1.0 // clearance
-          , side+spring_thickness+notch_depth+0.7
+niche3d = [ side+0.10 // clearance
+          , side+spring_thickness+notch_depth+0.05
           , height + 3 * layer_height // top clearance
                    + color_patch_thickness // color patch
           ];
 
-  walls = 1.6;
 
-  outer = [niche3d.x + 2 * walls,
-           niche3d.y + 2 * walls,
-           niche3d.z + 5];
+walls = 1.6;
+
+outer = [niche3d.x + 2 * walls,
+         niche3d.y + 2 * walls,
+         niche3d.z + 5];
+
+color_patch_3d = [outer.x - 14, niche3d.y, 2 * color_patch_thickness];
+
 
 module color_slot() {
   d = 0.8;
@@ -142,9 +152,9 @@ module stand() {
           cuboid(niche3d, anchor=BOTTOM);
       }
       translate([outer.x/2,0,outer.z-niche3d.z])
-        cuboid([7,outer.y,color_patch_thickness],anchor=RIGHT+BOTTOM);
+        cuboid([(outer.x-color_patch_3d.x)/2,outer.y,color_patch_thickness],anchor=RIGHT+BOTTOM);
       translate([-outer.x/2,0,outer.z-niche3d.z])
-        cuboid([7,outer.y,color_patch_thickness],anchor=LEFT+BOTTOM);
+        cuboid([(outer.x-color_patch_3d.x)/2,outer.y,color_patch_thickness],anchor=LEFT+BOTTOM);
     }
     translate([0,outer.y/2-walls-epsilon,outer.z-niche3d.z])
       color_slot();
@@ -171,11 +181,33 @@ module stand() {
 }
 
 
-stand();
-translate([2*side,0,0]) number("3");
-//translate([0,notch_depth,5]) number("5");
+module stands(n=1) {
+  for (i=[0:n-1]) {
+    translate([0,i * (outer.y-walls),0])
+      stand();
+  }
+}
+
+module color_patch() {
+  cuboid(color_patch_3d, anchor=BOTTOM);
+}
+
+module patches(n=10) {
+  for (i=[0:floor(n/5)-1]) {
+    for (j=[0:4]) {
+      if (5 * i + j < n) {
+        translate([j*side, i*(side + 5), 0])
+          color_patch();
+      }
+    }
+  }
+}
+
+//patches(10);
 
 
 
 
           
+numbers("01112223");
+// 3345");
