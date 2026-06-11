@@ -24,10 +24,10 @@ notch_depth = notch_height / 3;
 
 four_corners = [[1,1,1],[1,-1,1],[-1,-1,1],[-1,1,1]];
 
-module dent() {
+module dent(plus=0) {
   w = 1.4;
   halfw = w/2;
-  len = 7;
+  len = 7 + plus;
   translate([0,len/2,0])
   rotate([90,0,0])
   linear_extrude(len) {
@@ -144,16 +144,16 @@ niche3d = [ side+0.10 // clearance
 
 walls = 1.6;
 
-outer = [niche3d.x + 2 * walls,
-         niche3d.y + 2 * walls,
-         niche3d.z + 5];
+stand_outer = [niche3d.x + 2 * walls,
+               niche3d.y + 2 * walls,
+               niche3d.z + 5];
 
-color_patch_3d = [outer.x - 14, niche3d.y, 2 * color_patch_thickness];
+color_patch_3d = [stand_outer.x - 14, niche3d.y, 2 * color_patch_thickness];
 
 
 module color_slot() {
   d = 0.8;
-  l = outer.x-14;
+  l = stand_outer.x-14;
   translate([-l/2,0,0])
   rotate([90,0,90])
   linear_extrude(l)
@@ -165,7 +165,7 @@ module color_slot() {
 module color_block() {
   cuboid([ side - 2 * overhang_block_width - 2
          , side - 2 * front_back_width - spring_travel + 0.5 // -1 spitball
-         , niche3d.z - layer_height - depth // layer height spitballing
+         , height - depth - layer_height // layer height spitballing
          ], anchor=BOTTOM);
 }
 
@@ -175,42 +175,47 @@ module stand() {
   difference() {
     union () {
       difference() {
-        cuboid(outer,anchor=BOTTOM);
-        translate([0,0,outer.z+epsilon-niche3d.z])
+        cuboid(stand_outer,anchor=BOTTOM);
+        translate([0,0,stand_outer.z+epsilon-niche3d.z])
           cuboid(niche3d, anchor=BOTTOM);
       }
-//      translate([outer.x/2,0,outer.z-niche3d.z])
-//        cuboid([(outer.x-color_patch_3d.x)/2,outer.y,color_patch_thickness],anchor=RIGHT+BOTTOM);
-//      translate([-outer.x/2,0,outer.z-niche3d.z])
-//        cuboid([(outer.x-color_patch_3d.x)/2,outer.y,color_patch_thickness],anchor=LEFT+BOTTOM);
+//      translate([stand_outer.x/2,0,stand_outer.z-niche3d.z])
+//        cuboid([(stand_outer.x-color_patch_3d.x)/2,stand_outer.y,color_patch_thickness],anchor=RIGHT+BOTTOM);
+//      translate([-stand_outer.x/2,0,stand_outer.z-niche3d.z])
+//        cuboid([(stand_outer.x-color_patch_3d.x)/2,stand_outer.y,color_patch_thickness],anchor=LEFT+BOTTOM);
     }
-//    translate([0,outer.y/2-walls-epsilon,outer.z-niche3d.z])
+//    translate([0,stand_outer.y/2-walls-epsilon,stand_outer.z-niche3d.z])
 //      color_slot();
+    for (v = four_corners) {
+      translate(v_mul(v, [dent_delta.x,dent_delta.y, stand_outer.z-niche3d.z+2*epsilon]))
+        mirror([0,0,1])
+        dent(5);
+    }
     translate([side/2+7,0,0])
-      cylinder(d=25,h=3*outer.z,anchor=CENTER);
-    translate([-(side/2+7),0,0])
-      cylinder(d=25,h=3*outer.z,anchor=CENTER);
+      cylinder(d=25,h=3*stand_outer.z,anchor=CENTER);
+//    translate([-(side/2+7),0,0])
+//      cylinder(d=25,h=3*stand_outer.z,anchor=CENTER);
   }
 
   // color block
-  translate([0,0,outer.z - niche3d.z])
+  translate([0,0,stand_outer.z - niche3d.z])
     color_block();
   
 
 
   // springs
 
-  translate([-(outer.x/2-walls/2),0.5+walls-outer.y/2,outer.z-niche3d.z+0.4])
+  translate([-(stand_outer.x/2-walls/2),0.5+walls-stand_outer.y/2,stand_outer.z-niche3d.z+0.4])
   rotate([0,0,asin(spring_clearance/spring_length)])
   cuboid([spring_length,spring_thickness,height-2*layer_height],anchor=LEFT+BACK+BOTTOM);
 
-  translate([outer.x/2-walls/2,0.5+walls-outer.y/2,outer.z-niche3d.z+0.4])
+  translate([stand_outer.x/2-walls/2,0.5+walls-stand_outer.y/2,stand_outer.z-niche3d.z+0.4])
   rotate([0,0,-asin(spring_clearance/spring_length)])
   cuboid([spring_length,spring_thickness,height-2*layer_height],anchor=RIGHT+BACK+BOTTOM);
 
 
   // engagement with notch
-  translate([0,outer.y/2-side/2-walls+0.3,outer.z-niche3d.z+color_patch_thickness])
+  translate([0,stand_outer.y/2-side/2-walls+0.3,stand_outer.z-niche3d.z+color_patch_thickness])
     notch();
 
   
@@ -220,7 +225,7 @@ module stand() {
 
 module stands(n=1) {
   for (i=[0:n-1]) {
-    translate([0,i * (outer.y-walls),0])
+    translate([0,i * (stand_outer.y-walls),0])
       stand();
   }
 }
@@ -248,13 +253,17 @@ module patches(n=10) {
           
 //number("2");
 
-//stand();
+ stand();
 
+
+
+% if (true) {
  translate([0,1,0])
-  translate([0,0,outer.z-height])
+  translate([0,0,stand_outer.z-niche3d.z])
    translate([0,0,height])
     mirror([0,0,1])
     number("0");
+}
 
 //numbers("0123456789");
 //numbers("01112223");
