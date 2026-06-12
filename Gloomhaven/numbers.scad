@@ -103,6 +103,7 @@ module number(n="1") {
     notch();
 
     translate([0,0,-depth/2])
+      mirror([1,0,0])
       linear_extrude(2*height)
       text(n, font=font, size=side - 2 * front_back_width - 4, halign = "center",valign="center");
   }
@@ -128,7 +129,7 @@ module numbers(ns) {
 
 //numbers([2,4]);
 
-spring_clearance = 1.5;
+spring_clearance = 2.0; // was 1.5 but springs tired overnight
 spring_thickness = 1.0;
 spring_length = side/2 - 2;
 spring_travel = spring_clearance + spring_thickness;
@@ -146,7 +147,7 @@ walls = 1.6;
 
 stand_outer = [niche3d.x + 2 * walls,
                niche3d.y + 2 * walls,
-               niche3d.z + 5];
+               20]; // 20mm makes it easy to pick up
 
 color_patch_3d = [stand_outer.x - 14, niche3d.y, 2 * color_patch_thickness];
 
@@ -164,8 +165,8 @@ module color_slot() {
 
 module color_block() {
   cuboid([ side - 2 * overhang_block_width - 2
-         , side - 2 * front_back_width - spring_travel + 0.5 // -1 spitball
-         , height - depth - layer_height // layer height spitballing
+         , side - 2 * front_back_width - spring_travel + 1.0 // 1.0 empirical
+         , height - depth // exact fit; no room for a color patch
          ], anchor=BOTTOM);
 }
 
@@ -255,7 +256,7 @@ module patches(n=10) {
 
  stand();
 
-translate([2*side,0,0]) number("4");
+translate([2*side,0,0]) number("0");
 
 
 if (false) {
