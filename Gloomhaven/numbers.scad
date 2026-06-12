@@ -147,7 +147,7 @@ walls = 1.6;
 
 stand_outer = [niche3d.x + 2 * walls,
                niche3d.y + 2 * walls,
-               20]; // 20mm makes it easy to pick up
+               17]; // 17mm makes it easy to pick up
 
 color_patch_3d = [stand_outer.x - 14, niche3d.y, 2 * color_patch_thickness];
 
@@ -163,9 +163,12 @@ module color_slot() {
 
 
 
+color_block_bottom_adjustment = -1.3; // -1.3  // length to add to bottom of color block
+
 module color_block() {
+  translate([0,-color_block_bottom_adjustment/2,0])
   cuboid([ side - 2 * overhang_block_width - 2
-         , side - 2 * front_back_width - spring_travel + 1.0 // 1.0 empirical
+         , side - 2 * front_back_width - spring_travel + 1.0 + color_block_bottom_adjustment // 1.0 empirical
          , height - depth // exact fit; no room for a color patch
          ], anchor=BOTTOM);
 }
@@ -256,7 +259,7 @@ module patches(n=10) {
 
  stand();
 
-translate([2*side,0,0]) number("0");
+translate([2*side,0,0]) number("6");
 
 
 if (false) {
