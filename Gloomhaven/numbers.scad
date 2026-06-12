@@ -193,8 +193,8 @@ module stand() {
     }
     translate([side/2+7,0,0])
       cylinder(d=25,h=3*stand_outer.z,anchor=CENTER);
-//    translate([-(side/2+7),0,0])
-//      cylinder(d=25,h=3*stand_outer.z,anchor=CENTER);
+    translate([-(side/2+7),0,0])
+      cylinder(d=25,h=3*stand_outer.z,anchor=CENTER);
   }
 
   // color block
@@ -255,9 +255,10 @@ module patches(n=10) {
 
  stand();
 
+translate([2*side,0,0]) number("4");
 
 
-% if (true) {
+if (false) {
  translate([0,1,0])
   translate([0,0,stand_outer.z-niche3d.z])
    translate([0,0,height])
