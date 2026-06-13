@@ -116,12 +116,13 @@ module number(n="1") {
 
 
 module numbers(ns) {
+  stride = 7;
   n = len(ns);
-  for (i=[0:ceil(n/5)-1]) {
-    for (j=[0:4]) {
-      if (5 * i + j < n) {
-        translate([j*(side + 5), i*(side + 5), 0])
-          number(str(ns[5*i + j]));
+  for (i=[0:ceil(n/stride)-1]) {
+    for (j=[0:stride - 1]) {
+      if (stride * i + j < n) {
+        translate([j*(side + stride), i*(side + stride), 0])
+          number(str(ns[stride*i + j]));
       }
     }
   }
