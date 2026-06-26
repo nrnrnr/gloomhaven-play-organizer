@@ -235,6 +235,7 @@ module box(capacity=10,lip=false) {
     cuboid([outer.x,boxwalls+1,boxwalls],anchor=FRONT+TOP);
   }
 
+  translate([0,outer.y/2,0])
   difference() {
     cuboid(outer,anchor=BOTTOM);
     translate([0,0,boxwalls])
@@ -265,26 +266,33 @@ module box(capacity=10,lip=false) {
 
 }
 
-module boxes(n=5,capacity=10,theta=40,phi=15) { // theta = each box, phi = tower
+module boxes(n=5,capacity=10,theta=50,phi=77) { // theta = each box, phi = tower
+  antiphi = 90 - phi;
   outer = box_outer(capacity);
   module base(wingdepth=0) {
-    rotate([90-theta,0,0])
-      translate([0,outer.y/2,0]) {
+    rotate([90-theta,0,0]) {
       box(capacity=capacity,lip=theta<42);
-      if (wingdepth > 0) {
+      if (wingdepth > 50000) {
         cuboid([outer.x, outer.y, wingdepth],anchor=TOP);
       }
     }
   }
 
+  delta_y = outer.y-boxwalls;
+  hypotenuse = delta_y / cos(phi-theta);
+  delta_back = delta_y * tan(phi - theta); // B in diagram
+
   up_theta = [0,sin(theta),cos(theta)];
   forward_theta = [0,-cos(theta),sin(theta)];
-  wd = (outer.y-boxwalls)*sin(theta-phi);
+  back_theta = [0, cos(theta),-sin(theta)];
 
-  rear_cut_y =
-    (n-1)*(up_theta*(outer.y)+forward_theta*wd).y+n*outer.y*sin(phi) -n*wd*sin(theta);
+  rear_cut_y = (n-1) * hypotenuse * cos(antiphi) + outer.y*sin(theta);
 
   echo("boxes rear cut", rear_cut_y);
+
+  translate([-20,(n-1)*hypotenuse*cos(antiphi),0]) cuboid([80,0.01,100],anchor=FRONT+BOTTOM);
+color("blue")
+  translate([-20,rear_cut_y,0]) cuboid([80,0.01,100],anchor=FRONT+BOTTOM);
 
   if (phi<theta) {
    translate([0,rear_cut_y-epsilon,0])
@@ -292,48 +300,26 @@ module boxes(n=5,capacity=10,theta=40,phi=15) { // theta = each box, phi = tower
    cuboid([outer.x, rear_cut_y, rear_cut_y], anchor=FRONT+BOTTOM);
   }
 
-//  front_half(y= rear_cut_y, s = 4 * n *outer.y, show_frameref=false)
-   {
   for(i=[0:n-1]) {
-    top_half(s=2*n*outer.y)
-    translate(i*forward_theta*wd)
-    translate(i*up_theta*(outer.y-boxwalls))
+%    top_half(s=20*n*outer.y)
+    translate(i*back_theta*delta_back)
+    translate(i*up_theta*delta_y)
     if (theta > phi) {
-      base(wingdepth=i*wd);
+      base(wingdepth=i*delta_back);
     } else {
-      base(wingdepth=(n-i-1)*abs(wd)+n*outer.y*cos(theta));
+      base(wingdepth=(n-i-1)*abs(delta_back)+n*outer.y*cos(theta));
     }      
   }
+
+
+   if (theta < 30) {
+     // front base
+     back_half(y=-outer.z*cos(theta))
+       top_half(show_frameref=false)
+       rotate([-theta,0,0])
+       translate([0,-outer.z/2,epsilon])
+       cuboid([outer.x,outer.z,outer.y],anchor=TOP);
    }
-
-//  { i = 4;
-////    top_half(s=2*n*outer.y, show_frameref=false)
-//    translate(i*forward_theta*wd)
-//    translate(i*up_theta*(outer.y-boxwalls)) {
-//    if (theta > phi) {
-//      base(wingdepth=i*wd);
-//    } else {
-//      base(wingdepth=(n-i-1)*abs(wd)+n*outer.y*cos(theta));
-//    }
-//  }
-//}
-
-
-  // front base
-  back_half(y=-outer.z*cos(theta))
-  top_half(show_frameref=false)
-  rotate([-theta,0,0])
-  translate([0,-outer.z/2,epsilon])
-  cuboid([outer.x,outer.z,outer.y],anchor=TOP);
-
-  n_times_y = n*(outer.y-walls)+walls;
-
-  // base rear
-//  front_half(y=n_times_y*sin(theta),s=2*n*outer.y,show_frameref=false)
-//  top_half(2*n*outer.y)
-//  rotate([-theta,0,0])
-//  cuboid([outer.x, n_times_y, n_times_y], anchor=BOTTOM+FRONT);
-
 }
 
 
@@ -344,24 +330,30 @@ module double_boxes(n=5,capacity=10,gap=19,theta,phi) {
 
   outer = box_outer(capacity);
   one();
-  translate([gap+outer.y,0,0])
-    one();
+  translate([gap+outer.x,0,0])
+%    one();
 
   up_theta = [0,sin(theta),cos(theta)];
   forward_theta = [0,-cos(theta),sin(theta)];
   wd = (outer.y-boxwalls)*sin(theta-phi);
 
-  rear_cut_y =
-    (n-1)*(up_theta*(outer.y)+forward_theta*wd).y; // +n*outer.y*sin(phi) -n*wd*sin(theta);
+  rear_cut_y = 
+    (n-1)*(up_theta*(outer.y)+forward_theta*wd).y
+    + (outer.y+walls)*sin(theta);
+    
+
+// +n*outer.y*sin(phi) -n*wd*sin(theta)
 
   echo("double rear cut", rear_cut_y);
 
 
-  % cuboid([20,rear_cut_y,10], anchor=FRONT);
 
-//  linear_extrude(gap+2*epsilon) {
-//    polygon([[0,0], [rear_cut_y,0], [rear_cut_y,rear_cut_y/cos(phi)]]);
-//  }
+  translate([gap+epsilon+outer.x/2,0,0])
+//  color("blue")
+  rotate([0,-90,0])
+  linear_extrude(gap+2*epsilon) {
+    polygon([[0,0], [0, rear_cut_y], [rear_cut_y*cos(phi),rear_cut_y]]);
+  }
 }
 
           
@@ -379,10 +371,17 @@ module double_boxes(n=5,capacity=10,gap=19,theta,phi) {
 //numbers("00111112222223333344444555667789");
 
 antiphi = 13;
-antitheta = 45;
+antitheta = 35; //45;
 
-double_boxes(5,theta=90-antitheta,phi=90-antiphi);
+//box();
+
+boxes(5);
+
+//double_boxes(5,theta=90-antitheta,phi=90-antiphi);
+
 //boxes(5,theta=90-antitheta,phi=90-antiphi);
+
+//rotate([antiphi,0,0]) cuboid([200,200,0.3]);
 
 //box();
 //translate([2,box_outer(10).y-boxwalls,3])
