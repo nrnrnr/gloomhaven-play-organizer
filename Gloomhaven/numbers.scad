@@ -47,41 +47,6 @@ module notch() { // for top
   }
 }
   
-
-//  module number(n="1") {
-//    delta = dent_delta;
-//  
-//    difference() {
-//      cuboid([side,side,height],chamfer=height,edges=[BOTTOM+LEFT,BOTTOM+RIGHT],anchor=BOTTOM);
-//      translate([0,0,depth])
-//        cuboid([side-2*overhang_block_width, side - 2*front_back_width, height - depth + epsilon],
-//               chamfer=height-depth+epsilon,edges=[BOTTOM+LEFT,BOTTOM+RIGHT],anchor=BOTTOM);
-//      translate([delta.x,delta.y, -epsilon])
-//        dent();
-//      translate([delta.x,-delta.y, -epsilon])
-//        dent();
-//      translate([-delta.x,delta.y, -epsilon])
-//        dent();
-//      translate([-delta.x,-delta.y, -epsilon])
-//        dent();
-//  
-//      notch();
-//  
-//      translate([0,0,-depth/2])
-//        linear_extrude(2*height)
-//        text(n, font=font, size=side - 2 * front_back_width, halign = "center",valign="center");
-//    }
-//  
-//    translate([delta.x,delta.y, height-2*layer_height])
-//      dent();
-//    translate([delta.x,-delta.y, height-2*layer_height])
-//      dent();
-//    translate([-delta.x,delta.y, height-2*layer_height])
-//      dent();
-//    translate([-delta.x,-delta.y, height-2*layer_height])
-//      dent();
-//  }
-
 module number(n="1") {
   delta = dent_delta;
   inset = 0.5 * height; // less sharp than a true chamfer
@@ -102,10 +67,13 @@ module number(n="1") {
 
     notch();
 
-    translate([0,0,-depth/2])
-      mirror([1,0,0])
-      linear_extrude(2*height)
-      text(n, font=font, size=side - 2 * front_back_width - 4, halign = "center",valign="center");
+    if (n != " ") {
+      translate([0,0,-depth/2])
+        mirror([1,0,0])
+        linear_extrude(2*height)
+        text(n, font=font, size=side - 2 * front_back_width - 4, halign = "center",valign="center");
+    }
+
   }
 
   for (v = four_corners) {
@@ -253,14 +221,172 @@ module patches(n=10) {
 //patches(10);
 
 
+boxwalls=1.6;
 
+function box_outer(capacity = 10) = [stand_outer.x,stand_outer.y+3, capacity*(height+0.2)+2*boxwalls];
+function box_inner(capacity = 10) = [niche3d.x, stand_outer.y+3-2*boxwalls, 2*box_outer(capacity).z]; // sticks out in Z
+
+module box(capacity=10,lip=false) {
+  outer = box_outer(capacity);
+  inner = box_inner(capacity);
+
+  if (lip) {
+    translate([0,-outer.y/2,outer.z]) // retaining lip
+    cuboid([outer.x,boxwalls+1,boxwalls],anchor=FRONT+TOP);
+  }
+
+  difference() {
+    cuboid(outer,anchor=BOTTOM);
+    translate([0,0,boxwalls])
+      cuboid(inner,anchor=BOTTOM);
+
+    dA=10;
+    side_height = 7;
+    shift = inner.y/2-(side_height + dA/2);
+    
+    translate([0,shift,boxwalls])
+    rotate([0,90,0])
+    cyl(h=2*side, d=dA,anchor=RIGHT);
+    translate([0,-shift,boxwalls])
+    rotate([0,90,0])
+    cyl(h=2*side, d=dA,anchor=RIGHT);
+
+    translate([outer.x/2, 0, boxwalls])
+    cuboid([3*boxwalls, 2*shift, outer.z], anchor=BOTTOM);
+    translate([-outer.x/2, 0, boxwalls])
+    cuboid([3*boxwalls, 2*shift, outer.z], anchor=BOTTOM);
+
+    translate([outer.x/2, 0, boxwalls+dA/2])
+    cuboid([3*boxwalls, 2*shift+dA, outer.z], anchor=BOTTOM);
+    translate([-outer.x/2, 0, boxwalls+dA/2])
+    cuboid([3*boxwalls, 2*shift+dA, outer.z], anchor=BOTTOM);
+
+  }
+
+}
+
+module boxes(n=5,capacity=10,theta=40,phi=15) { // theta = each box, phi = tower
+  outer = box_outer(capacity);
+  module base(wingdepth=0) {
+    rotate([90-theta,0,0])
+      translate([0,outer.y/2,0]) {
+      box(capacity=capacity,lip=theta<42);
+      if (wingdepth > 0) {
+        cuboid([outer.x, outer.y, wingdepth],anchor=TOP);
+      }
+    }
+  }
+
+  up_theta = [0,sin(theta),cos(theta)];
+  forward_theta = [0,-cos(theta),sin(theta)];
+  wd = (outer.y-boxwalls)*sin(theta-phi);
+
+  rear_cut_y =
+    (n-1)*(up_theta*(outer.y)+forward_theta*wd).y+n*outer.y*sin(phi) -n*wd*sin(theta);
+
+  echo("boxes rear cut", rear_cut_y);
+
+  if (phi<theta) {
+   translate([0,rear_cut_y-epsilon,0])
+   half_of(v=[0,-1,-1],cp=-rear_cut_y/sqrt(2)+3,show_frameref=false)
+   cuboid([outer.x, rear_cut_y, rear_cut_y], anchor=FRONT+BOTTOM);
+  }
+
+//  front_half(y= rear_cut_y, s = 4 * n *outer.y, show_frameref=false)
+   {
+  for(i=[0:n-1]) {
+    top_half(s=2*n*outer.y)
+    translate(i*forward_theta*wd)
+    translate(i*up_theta*(outer.y-boxwalls))
+    if (theta > phi) {
+      base(wingdepth=i*wd);
+    } else {
+      base(wingdepth=(n-i-1)*abs(wd)+n*outer.y*cos(theta));
+    }      
+  }
+   }
+
+//  { i = 4;
+////    top_half(s=2*n*outer.y, show_frameref=false)
+//    translate(i*forward_theta*wd)
+//    translate(i*up_theta*(outer.y-boxwalls)) {
+//    if (theta > phi) {
+//      base(wingdepth=i*wd);
+//    } else {
+//      base(wingdepth=(n-i-1)*abs(wd)+n*outer.y*cos(theta));
+//    }
+//  }
+//}
+
+
+  // front base
+  back_half(y=-outer.z*cos(theta))
+  top_half(show_frameref=false)
+  rotate([-theta,0,0])
+  translate([0,-outer.z/2,epsilon])
+  cuboid([outer.x,outer.z,outer.y],anchor=TOP);
+
+  n_times_y = n*(outer.y-walls)+walls;
+
+  // base rear
+//  front_half(y=n_times_y*sin(theta),s=2*n*outer.y,show_frameref=false)
+//  top_half(2*n*outer.y)
+//  rotate([-theta,0,0])
+//  cuboid([outer.x, n_times_y, n_times_y], anchor=BOTTOM+FRONT);
+
+}
+
+
+module double_boxes(n=5,capacity=10,gap=19,theta,phi) {
+  module one () {
+    boxes(n,capacity=capacity,theta=theta,phi=phi);
+  }
+
+  outer = box_outer(capacity);
+  one();
+  translate([gap+outer.y,0,0])
+    one();
+
+  up_theta = [0,sin(theta),cos(theta)];
+  forward_theta = [0,-cos(theta),sin(theta)];
+  wd = (outer.y-boxwalls)*sin(theta-phi);
+
+  rear_cut_y =
+    (n-1)*(up_theta*(outer.y)+forward_theta*wd).y; // +n*outer.y*sin(phi) -n*wd*sin(theta);
+
+  echo("double rear cut", rear_cut_y);
+
+
+  % cuboid([20,rear_cut_y,10], anchor=FRONT);
+
+//  linear_extrude(gap+2*epsilon) {
+//    polygon([[0,0], [rear_cut_y,0], [rear_cut_y,rear_cut_y/cos(phi)]]);
+//  }
+}
 
           
 //number("2");
 
- stand();
+//numbers("  ");
 
-translate([2*side,0,0]) number("6");
+//for (i=[0:1]) {
+//  translate([i*40, 0,0])
+//    stands(1);
+// }
+
+//translate([2*side,0,0]) number("6");
+
+//numbers("00111112222223333344444555667789");
+
+antiphi = 13;
+antitheta = 45;
+
+double_boxes(5,theta=90-antitheta,phi=90-antiphi);
+//boxes(5,theta=90-antitheta,phi=90-antiphi);
+
+//box();
+//translate([2,box_outer(10).y-boxwalls,3])
+//box();
 
 
 if (false) {
