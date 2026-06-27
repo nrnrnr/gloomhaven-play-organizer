@@ -10,6 +10,15 @@ module ear(r=5) {
   cyl(r=r,h=layer_height,anchor=BOTTOM);
 }
 
+//changes from prototype:
+//
+// - wider horizontally, maybe 0.8mm
+// - thumb dip *under* box for getting deep into the box
+// - triangles to eliminate serrations
+//
+// changes proposed
+// - round off dip edges
+
 
 
 side = 33; // 10% increase from 30mm
@@ -225,15 +234,18 @@ module patches(n=10) {
 
 //patches(10);
 
+side_opening_diameter = 10;
+side_height = 7;
 
 boxwalls=1.6;
 
 box_extra_y = 1.5;
+box_extra_x = 0.75;
 
-function box_outer(capacity = 12) = [stand_outer.x,stand_outer.y+box_extra_y, capacity*(height+0.2)+2*boxwalls];
-function box_inner(capacity = 12) = [niche3d.x, stand_outer.y+box_extra_y-2*boxwalls, 2*box_outer(capacity).z]; // sticks out in Z
+function box_outer(capacity = 12) = [stand_outer.x+box_extra_x,stand_outer.y+box_extra_y, capacity*(height+0.2)+2*boxwalls];
+function box_inner(capacity = 12) = [niche3d.x+box_extra_x, stand_outer.y+box_extra_y-2*boxwalls, 2*box_outer(capacity).z]; // sticks out in Z
 
-module box(capacity=12,lip=false) {
+module box(capacity=12,backdepth=0,lip=false) {
   outer = box_outer(capacity);
   inner = box_inner(capacity);
 
@@ -242,14 +254,19 @@ module box(capacity=12,lip=false) {
     cuboid([outer.x,boxwalls+1,boxwalls],anchor=FRONT+TOP);
   }
 
+  if (backdepth > 0) {
+    translate([0,0,epsilon])
+    cuboid([outer.x, outer.y, backdepth],anchor=TOP+FRONT);
+  }
+
+
   translate([0,outer.y/2,0])
   difference() {
     cuboid(outer,anchor=BOTTOM);
     translate([0,0,boxwalls])
       cuboid(inner,anchor=BOTTOM);
 
-    dA=10;
-    side_height = 7;
+    dA=side_opening_diameter;
     shift = inner.y/2-(side_height + dA/2);
     
     translate([0,shift,boxwalls])
@@ -285,11 +302,30 @@ function rear_cut_y(n=5,capacity=12,theta=50,phi=77) =
 module boxes(n=5,capacity=12,theta=50,phi=77) { // theta = each box, phi = tower
   antiphi = 90 - phi;
   outer = box_outer(capacity);
-  module base(wingdepth=0) {
+  inner = box_inner(capacity);
+  shift = inner.y/2-(side_height + side_opening_diameter/2);
+
+
+  module triangle() {
+    rotate([0,90,0])
+    mirror([1,0,0])
+    linear_extrude(walls) {
+      polygon([[0,0], [delta_back+epsilon,0], [0,(inner.y-side_opening_diameter-2*shift)/2]]);
+    }
+  }
+
+  module base(wingdepth=0,tri=true) {
     rotate([90-theta,0,0]) {
-      box(capacity=capacity,lip=theta<42);
-      if (wingdepth > 0) {
-        cuboid([outer.x, outer.y, wingdepth],anchor=TOP+FRONT);
+      difference () {
+        box(capacity=capacity,lip=theta<42,backdepth=wingdepth);
+        translate([0,outer.y/2,4])
+          cyl(h=2*outer.x, d=14, anchor=CENTER, orient=RIGHT);
+      }
+      if (tri) {
+        translate([outer.x/2-walls,walls,outer.z-epsilon])
+          triangle();
+        translate([-outer.x/2,walls,outer.z-epsilon])
+          triangle();
       }
     }
   }
@@ -318,12 +354,13 @@ module boxes(n=5,capacity=12,theta=50,phi=77) { // theta = each box, phi = tower
     front_half(s=20*n*outer.y,y=rcy)
     top_half(s=20*n*outer.y)
     translate(i*back_theta*delta_back)
-    translate(i*up_theta*delta_y)
-    if (theta > phi) {
-      base(wingdepth=i*delta_back);
-    } else {
-      base(wingdepth=(n-i-1)*abs(delta_back)+n*outer.y*cos(theta));
-    }      
+    translate(i*up_theta*delta_y) {
+      if (theta > phi) {
+        base(wingdepth=i*delta_back,tri=i>0);
+      } else {
+        base(wingdepth=(n-i-1)*abs(delta_back)+n*outer.y*cos(theta),tri=i>0);
+      }
+    }
   }
 
 
