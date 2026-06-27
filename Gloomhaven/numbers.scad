@@ -6,6 +6,12 @@ include <BOSL2/std.scad>
 layer_height = 0.2;
 epsilon = 0.001;
 
+module ear(r=5) {
+  cyl(r=r,h=layer_height,anchor=BOTTOM);
+}
+
+
+
 side = 33; // 10% increase from 30mm
 height = 2.8;
 overhang_angle = 45;
@@ -13,7 +19,6 @@ overhang_block_width = 5.5;
 front_back_width = 1.2;
 
 dent_delta = [side/2 -height * cos(overhang_angle)-1.5, side/2-7];
-
 
 font = "Beringas Block Military Stencil";
 
@@ -223,10 +228,12 @@ module patches(n=10) {
 
 boxwalls=1.6;
 
-function box_outer(capacity = 10) = [stand_outer.x,stand_outer.y+3, capacity*(height+0.2)+2*boxwalls];
-function box_inner(capacity = 10) = [niche3d.x, stand_outer.y+3-2*boxwalls, 2*box_outer(capacity).z]; // sticks out in Z
+box_extra_y = 1.5;
 
-module box(capacity=10,lip=false) {
+function box_outer(capacity = 12) = [stand_outer.x,stand_outer.y+box_extra_y, capacity*(height+0.2)+2*boxwalls];
+function box_inner(capacity = 12) = [niche3d.x, stand_outer.y+box_extra_y-2*boxwalls, 2*box_outer(capacity).z]; // sticks out in Z
+
+module box(capacity=12,lip=false) {
   outer = box_outer(capacity);
   inner = box_inner(capacity);
 
@@ -266,14 +273,23 @@ module box(capacity=10,lip=false) {
 
 }
 
-module boxes(n=5,capacity=10,theta=50,phi=77) { // theta = each box, phi = tower
+function rear_cut_y(n=5,capacity=12,theta=50,phi=77) =
+  let (
+    delta_y = box_outer(capacity).y-boxwalls,
+    hypotenuse = delta_y / cos(phi-theta),
+    delta_back = delta_y * tan(phi - theta),
+    antiphi = 90 - phi
+  ) (n-1) * hypotenuse * cos(antiphi) + box_outer(capacity).y*sin(theta);
+
+
+module boxes(n=5,capacity=12,theta=50,phi=77) { // theta = each box, phi = tower
   antiphi = 90 - phi;
   outer = box_outer(capacity);
   module base(wingdepth=0) {
     rotate([90-theta,0,0]) {
       box(capacity=capacity,lip=theta<42);
-      if (wingdepth > 50000) {
-        cuboid([outer.x, outer.y, wingdepth],anchor=TOP);
+      if (wingdepth > 0) {
+        cuboid([outer.x, outer.y, wingdepth],anchor=TOP+FRONT);
       }
     }
   }
@@ -286,22 +302,21 @@ module boxes(n=5,capacity=10,theta=50,phi=77) { // theta = each box, phi = tower
   forward_theta = [0,-cos(theta),sin(theta)];
   back_theta = [0, cos(theta),-sin(theta)];
 
-  rear_cut_y = (n-1) * hypotenuse * cos(antiphi) + outer.y*sin(theta);
+  rcy = rear_cut_y(n,capacity,theta,phi);
 
-  echo("boxes rear cut", rear_cut_y);
-
-  translate([-20,(n-1)*hypotenuse*cos(antiphi),0]) cuboid([80,0.01,100],anchor=FRONT+BOTTOM);
-color("blue")
-  translate([-20,rear_cut_y,0]) cuboid([80,0.01,100],anchor=FRONT+BOTTOM);
+//  translate([-20,(n-1)*hypotenuse*cos(antiphi),0]) cuboid([80,0.01,100],anchor=FRONT+BOTTOM);
+//color("blue")
+//  translate([-20,rcy,0]) cuboid([80,0.01,100],anchor=FRONT+BOTTOM);
 
   if (phi<theta) {
-   translate([0,rear_cut_y-epsilon,0])
-   half_of(v=[0,-1,-1],cp=-rear_cut_y/sqrt(2)+3,show_frameref=false)
-   cuboid([outer.x, rear_cut_y, rear_cut_y], anchor=FRONT+BOTTOM);
+   translate([0,rcy-epsilon,0])
+   half_of(v=[0,-1,-1],cp=-rcy/sqrt(2)+3,show_frameref=false)
+   cuboid([outer.x, rcy, rcy], anchor=FRONT+BOTTOM);
   }
 
   for(i=[0:n-1]) {
-%    top_half(s=20*n*outer.y)
+    front_half(s=20*n*outer.y,y=rcy)
+    top_half(s=20*n*outer.y)
     translate(i*back_theta*delta_back)
     translate(i*up_theta*delta_y)
     if (theta > phi) {
@@ -323,7 +338,7 @@ color("blue")
 }
 
 
-module double_boxes(n=5,capacity=10,gap=19,theta,phi) {
+module double_boxes(n=5,capacity=12,gap=19,theta,phi) {
   module one () {
     boxes(n,capacity=capacity,theta=theta,phi=phi);
   }
@@ -331,28 +346,19 @@ module double_boxes(n=5,capacity=10,gap=19,theta,phi) {
   outer = box_outer(capacity);
   one();
   translate([gap+outer.x,0,0])
-%    one();
+    one();
 
   up_theta = [0,sin(theta),cos(theta)];
   forward_theta = [0,-cos(theta),sin(theta)];
   wd = (outer.y-boxwalls)*sin(theta-phi);
 
-  rear_cut_y = 
-    (n-1)*(up_theta*(outer.y)+forward_theta*wd).y
-    + (outer.y+walls)*sin(theta);
-    
-
-// +n*outer.y*sin(phi) -n*wd*sin(theta)
-
-  echo("double rear cut", rear_cut_y);
-
-
+  rcy = rear_cut_y(n,capacity,theta,phi);
 
   translate([gap+epsilon+outer.x/2,0,0])
 //  color("blue")
   rotate([0,-90,0])
   linear_extrude(gap+2*epsilon) {
-    polygon([[0,0], [0, rear_cut_y], [rear_cut_y*cos(phi),rear_cut_y]]);
+    polygon([[0,0], [0, rcy], [rcy*cos(phi),rcy]]);
   }
 }
 
@@ -371,13 +377,39 @@ module double_boxes(n=5,capacity=10,gap=19,theta,phi) {
 //numbers("00111112222223333344444555667789");
 
 antiphi = 13;
-antitheta = 35; //45;
+antitheta = 45;
 
 //box();
 
-boxes(5);
+//boxes(5);
+//boxes(5,phi=90-antiphi,theta = 90 -antitheta);
+//boxes(1,phi=90-antiphi,theta = 90 -antitheta);
 
-//double_boxes(5,theta=90-antitheta,phi=90-antiphi);
+rotate([0,0,90]) {
+  gap = 19;
+  double_boxes(5,theta=90-antitheta,phi=90-antiphi,gap=gap);
+
+  bo = box_outer();
+
+  esize = 12;
+
+  translate([-bo.x/2,esize,0]) ear(esize);
+  translate([bo.x/2+gap+bo.x,esize,0]) ear(esize);
+
+  translate([-bo.x/2+esize,0,0]) ear(esize);
+  translate([bo.x/2+gap+bo.x-esize,0,0]) ear(esize);
+
+  rcy = rear_cut_y(5,theta=90-antitheta,phi=90-antiphi);
+
+  translate([-bo.x/2,rcy-esize,0]) ear(esize);
+  translate([bo.x/2+gap+bo.x,rcy-esize,0]) ear(esize);
+
+  translate([-bo.x/2+esize,rcy,0]) ear(esize);
+  translate([bo.x/2+gap+bo.x-esize,rcy,0]) ear(esize);
+
+  
+
+}
 
 //boxes(5,theta=90-antitheta,phi=90-antiphi);
 
